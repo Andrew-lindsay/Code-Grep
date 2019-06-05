@@ -58,36 +58,57 @@
  - If results returned by GitHub API are on multiple pages use ?page=3 to specify a page and ?per_page=100 to specify # max number on each page
  - livegrep has specific file searching in a repo (could be used in conjunction with github api)
    + livegrep returns in code results and name file results
-   + api for livegrep accessible https://livegrep.com/api/v1/search/ returns json, web query is https://livegrep.com/search/  
+   + api for livegrep accessible https://livegrep.com/api/v1/search/ returns json, web query is https://livegrep.com/search/
+ - Backend and frontend deployed on server and but frontend can't communicate with backfront
+   + direct calls to backend work using bloomRPC
+   + does it work locally with bloomrpc ? (yes) once port is published
 
 * Tasks
  1) Check the extent of github search functionality (write python code to get results and pull porjects)
 	- how many keywords allowed to narrow search	
+
  2) How would pipeline work 1:
 	- Users provide some restriction parameters that github can utilise to find repos/files
 	- then User provides patterns of what they want to find (like grep) and they are applied to the repositories found earlier.
 	  - how are regexs defined to identify linked list candidates?
 	  - limited return of github maybe an issue
 	  - time taken to download repository would be a problem ? 
+
  3) How would pipeline work 2:
 	- regex provided	
-    - then search made to GitHub api where regex is more specific
+	- then search made to GitHub api where regex is more specific
 	- collect results from all searchs to the api and return them to the user
- 4) Confirm Number of repositories GitHub Api can return (1000 get more by using star count diff search) (done scripted)  
- 5) install livegrep on own machine using docker (stress test) (problematic)
+
+ 4) Confirm Number of repositories GitHub Api can return (1000)
+	- get more by using star count diff search 
+
+ 5) install livegrep on own machine using docker (stress test) (problematic failed to connect frontend to backend)
 	- how to get livegrep to index a specific repo not a user
 	  + docker run -v $(pwd):/data livegrep/indexer /livegrep/bin/livegrep-github-reindex -repo livegrep/livegrep -http -dir /data
 	- test the backend codesearch running in docker with direct GRPD requests ([[https://github.com/uw-labs/bloomrpc][Bloomrpc]]) to ensure it works
- 6) install on server using docker or install natively on server 
+
+ 6) install livegrep on server using docker or build natively
+	- install using blog post (done) or try livegrep repo docker install (trying local install to see if backend and talk to frontend and its just a docker error)
+	- installed nativately and worked, built using bazel 0.26 slightly different from the one stated in projects github
+	- Check different ways of build index of code or to run without building an index using native tool 
 	- find way of passing repository from a list (or github api) to create an index for codesearch backend
-	- 
+	  + get top 1000 repo results for c language then  build index with the set of repos
+	  + build a json file that specifies the required repos (THIS)
+	  + use inbuilt github indexer and feed it a list a repos individually with flag -repo
+
  7) How large is GitHub (tb or pb) 
-	- [[https://github.com/search?q=is:public][29 Million public repos]], max size [[https://help.github.com/en/articles/what-is-my-disk-quota][100GB]] so size <2800tb, (need better estimate obviously )
+	- [[https://github.com/search?q=is:public][29 Million public repos]], max size [[https://help.github.com/en/articles/what-is-my-disk-quota][100GB]] so size <2800tb, (need better estimate obviously)
 	- 400,000 GitHub repositories, 1 billion files, 14 terabytes of code - [[https://medium.com/@hoffa/400-000-github-repositories-1-billion-files-14-terabytes-of-code-spaces-or-tabs-7cfe0b5dd7fd][Medium]] 
 	- so maybe 1015tb if (29M/400,000)*14tb (still not good)
 	- repos that are designated c or c++ number around 1M, c = 470k and c++ = 649K
 	  + so 2.5*14tb= 35tb for c/c++ repos
+
  8) What API/tool exist for GitLab/sourceForge/bitbucket or other source code hosting sites (codeplex, google code)
+	- GitLab: has search capabilities and a Restful API
+	  + [[https://docs.gitlab.com/ee/user/search/advanced_global_search.html][Advanced Global Search]] (powered by Elasticsearch) is not yet available on GitLab.com
+	  + over 1000 repos returned for simple search of ruby pages can keep being request by the looks of it (unlike github)
+	- BitBucket: 
+
  9) How well does GitHub Identify repo language types
 
 

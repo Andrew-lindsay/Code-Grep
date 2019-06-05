@@ -4,11 +4,15 @@ import requests
 import json
 
 
+def create_repo_pull_list():
+    pass
+
+
 def get_results(key_words, search_type, num_per_page=10):
     response = requests.get(
         "https://api.github.com/search/" + search_type + "?q=" +
         '+'.join(key_words) + "+language:c&per_page=" + str(num_per_page),
-        headers={'Authorization': 'token PLACE TOKEN HERE'})
+        headers={'Authorization': 'token TOKEN HERE'})
     if response.status_code != 200:
         print('Error Status code: {}'.format(response.status_code))
 
@@ -30,14 +34,16 @@ def get_results(key_words, search_type, num_per_page=10):
     elif search_type == "repositories":
         search_items = response.json()['items']
         # print(json.dumps(response.json(), indent=4))
-        for item in search_items:
-            print("Full Repo Name: {}".format(item['full_name']))
+        with open("repo_list.txt", "w") as repo_list:
+            for item in search_items:
+                print("Full Repo Name: {}".format(item['full_name']))
+                repo_list.write("{}\n".format(item['full_name']))
 
 
 def main():
-    search_terms = ["language:c", "stars:>10"]
+    search_terms = ["language:c", "stars:>10", ]
     print("search terms: {}".format(search_terms))
-    get_results(search_terms, search_type="repositories")
+    get_results(search_terms, search_type="repositories", num_per_page=10)
 
 
 if __name__ == "__main__":
