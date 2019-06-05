@@ -1,0 +1,95 @@
+* Objectives - Grep for github 
+ - Scan github for example that create data structures from scratch (list, hash map, circular list, tree, array) 
+   + keywords e.g list, insert, append ?
+ - Use GitHub search to find possible examples using keywords, file endings, language restriction 
+ - Pull repositories for examples 
+ - Utilise regular expressions to find exact examples of data structure of interest being defined (linked list)
+ 
+* Thoughts
+ - 1000 results return for each unique query (may return diff results if diff sorting parameter used, indexed or best match )
+ - What form do they take ?
+   + pull entire project ?
+   + run generic makefile to check for the present of thing to transform
+	 - what is it that is being transformed or looked for presence of
+	 - linked list implementation
+ - Pulling each repo to run regex over is going to be slow 
+ - limitations of github to 30 requests per minute
+ - Find file contents via various criteria. This method returns up to 100 results per page.
+ - sort Default: best match
+ - Simplest approach take the live-grep and feed the web server the repositories returned by the github code search (only uses keywords tho not true grep)
+   + build 
+ - having a local copy of github is insane so need to be smart use what github offers to reduce downloading repo locally for livegrep to search
+ - GitHub Scaper to find interesting repo to clone and then regex (as GitHub Api will only return 1000 res)
+ - Incrementaly go through number of stars definitly get diff list of 1000 repos each time :)
+ - index files for repos are 5-6x larger than the repos :(
+
+* Things I need to know ? 
+ - What is going to use the result of the tool ? 
+   + Rejuvenation tools
+   + People interested in examples of code
+ - Is this just for transformation examples related to my project ?
+ - How limited is the results return by github, can I even get all matches github made.
+ - How to get more results return than just 1000
+ - How slow can it be ? 
+
+* Links 
+ - [[https://developer.github.com/v3/search/][GitHub Search api]]
+   + The GitHub Search API provides up to 1,000 results for each search.
+ - [[https://developer.github.com/v3/search/][GitHub Search api]]
+   + to search code:  You must authenticate to search for code across all public repositories.
+ - [[https://realpython.com/api-integration-in-python/][Restful APIs in python]]
+ - [[https://github.com/PyGithub/PyGithub/issues/824][1000 request issue]]
+ - [[https://www.alexdebrie.com/posts/faster-code-search-livegrep/][livegrep]] (pretty awesome)
+ - [[https://github.com/mamal72/telegram-github-search-bot][telegram github bot]]
+ - [[https://github.com/mbcrawfo/GenericMakefile][Generic makefile]]
+ - [[https://spin.atomicobject.com/2016/08/26/makefile-c-projects/][makefile c project]]
+ - [[https://github.com/google/codesearch][google code search - set of commandline tools written in go]]
+ - [[https://oracle.github.io/opengrok/][openGrok - source code search and cross reference engine]]
+   + does it support regex => ([[https://github.com/oracle/opengrok/wiki/Comparison-with-Similar-Tools][only wildcards]])
+ - [[https://searchcode.com/][Search code]] - searchcode server you can search across any repository of code that has been added by your administrator. 
+   + does it support regex - (No regex)
+	 - Search using wild-card operators E.G. search*,
+	 - Search using boolean and search operators AND OR NOT ( ),
+	 - Search using special characters E.G. i++;)
+ - Source graph (N/A)
+
+* Notes from trying stuff
+ - using list as name of file leads to lot of cs student related learning reposistories
+ - If results returned by GitHub API are on multiple pages use ?page=3 to specify a page and ?per_page=100 to specify # max number on each page
+ - livegrep has specific file searching in a repo (could be used in conjunction with github api)
+   + livegrep returns in code results and name file results
+   + api for livegrep accessible https://livegrep.com/api/v1/search/ returns json, web query is https://livegrep.com/search/  
+
+* Tasks
+ 1) Check the extent of github search functionality (write python code to get results and pull porjects)
+	- how many keywords allowed to narrow search	
+ 2) How would pipeline work 1:
+	- Users provide some restriction parameters that github can utilise to find repos/files
+	- then User provides patterns of what they want to find (like grep) and they are applied to the repositories found earlier.
+	  - how are regexs defined to identify linked list candidates?
+	  - limited return of github maybe an issue
+	  - time taken to download repository would be a problem ? 
+ 3) How would pipeline work 2:
+	- regex provided	
+    - then search made to GitHub api where regex is more specific
+	- collect results from all searchs to the api and return them to the user
+ 4) Confirm Number of repositories GitHub Api can return (1000 get more by using star count diff search) (done scripted)  
+ 5) install livegrep on own machine using docker (stress test) (problematic)
+	- how to get livegrep to index a specific repo not a user
+	  + docker run -v $(pwd):/data livegrep/indexer /livegrep/bin/livegrep-github-reindex -repo livegrep/livegrep -http -dir /data
+	- test the backend codesearch running in docker with direct GRPD requests ([[https://github.com/uw-labs/bloomrpc][Bloomrpc]]) to ensure it works
+ 6) install on server using docker or install natively on server 
+	- find way of passing repository from a list (or github api) to create an index for codesearch backend
+	- 
+ 7) How large is GitHub (tb or pb) 
+	- [[https://github.com/search?q=is:public][29 Million public repos]], max size [[https://help.github.com/en/articles/what-is-my-disk-quota][100GB]] so size <2800tb, (need better estimate obviously )
+	- 400,000 GitHub repositories, 1 billion files, 14 terabytes of code - [[https://medium.com/@hoffa/400-000-github-repositories-1-billion-files-14-terabytes-of-code-spaces-or-tabs-7cfe0b5dd7fd][Medium]] 
+	- so maybe 1015tb if (29M/400,000)*14tb (still not good)
+	- repos that are designated c or c++ number around 1M, c = 470k and c++ = 649K
+	  + so 2.5*14tb= 35tb for c/c++ repos
+ 8) What API/tool exist for GitLab/sourceForge/bitbucket or other source code hosting sites (codeplex, google code)
+ 9) How well does GitHub Identify repo language types
+
+
+* Additional
+  - check real-world implementations of linked lists how different people define them.
