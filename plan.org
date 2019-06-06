@@ -22,6 +22,12 @@
  - GitHub Scaper to find interesting repo to clone and then regex (as GitHub Api will only return 1000 res)
  - Incrementaly go through number of stars definitly get diff list of 1000 repos each time :)
  - index files for repos are 5-6x larger than the repos :(
+ - does livegrep have someway of paging results endlessly ? (max_matches exists but is that the best way)
+ - Clang filtering of reposistories ? reduce the number of required repos to search across
+ - Could build DB of every repo on github just having some information on it link to reposistory language information (seems possible)
+ - Could build index of code on the fly from filtered list of repositories that are passed to code search tool (Repositories actual code could be stored locally if needed)
+ - What are some local tools that are like grep for large set of files ? ([[https://github.com/google/codesearch][google code search tool]], [[https://beyondgrep.com/][ack - grep opt for programmers]], git grep, )
+ - way to limit number of results from each repository
 
 * Things I need to know ? 
  - What is going to use the result of the tool ? 
@@ -30,7 +36,13 @@
  - Is this just for transformation examples related to my project ?
  - How limited is the results return by github, can I even get all matches github made.
  - How to get more results return than just 1000
- - How slow can it be ? 
+ - How slow can it be ?
+ - How interactive does it need to be?
+ - what is pulled by livegrep github index tool (whole repo), can you provide non github repos ? (must be able to)
+ - can livesearch index not stored in git repo
+ - livegrep json list of repos pulled stored in same location as repos
+ - what is the security concern of donwloading random repos off the internet
+ - do repos have unique ids ?
 
 * Links 
  - [[https://developer.github.com/v3/search/][GitHub Search api]]
@@ -39,7 +51,7 @@
    + to search code:  You must authenticate to search for code across all public repositories.
  - [[https://realpython.com/api-integration-in-python/][Restful APIs in python]]
  - [[https://github.com/PyGithub/PyGithub/issues/824][1000 request issue]]
- - [[https://www.alexdebrie.com/posts/faster-code-search-livegrep/][livegrep]] (pretty awesome)
+ - [[https://www.alexdebrie.com/posts/faster-code-search-livegrep/][livegrep]] (pretty awesome)n
  - [[https://github.com/mamal72/telegram-github-search-bot][telegram github bot]]
  - [[https://github.com/mbcrawfo/GenericMakefile][Generic makefile]]
  - [[https://spin.atomicobject.com/2016/08/26/makefile-c-projects/][makefile c project]]
@@ -51,17 +63,36 @@
 	 - Search using wild-card operators E.G. search*,
 	 - Search using boolean and search operators AND OR NOT ( ),
 	 - Search using special characters E.G. i++;)
+   + [[https://searchcode.com/?q=hello][searchcode website]] can search through repos from Github, Bitbucket, Google Code, CodePlex, GitLab, Sourceforge, Minix, Google , Gitorious 
+	 so there must be away to get code info or repository info from each of these sites
  - Source graph (N/A)
+ - [[http://www.lihaoyi.com/post/ReimaginingtheOnlineCodeExplorer.html][Reimagining the Online Code Explorer]] blog post (2017)
+ - [[https://searchfox.org/][Search fox]], Create by mozila uses livegrep indexer, desc: Searchfox is a source code indexing tool for Mozilla Firefox
+   + last update 2 years ago
+   + gitrepo https://github.com/bgrins/searchfox has a nice diagram
+ - [[https://github.com/hound-search/hound][Hound ]]: very simialr to livegrep build using Russ Cox: Regular Expression Matching with a Trigram Index.
+   + "Create a config.json in a directory with your list of repositories."
+   + supported version control systems Git, Mercurial, SVN, Bazaar can be specified per repo in json file
 
 * Notes from trying stuff
  - using list as name of file leads to lot of cs student related learning reposistories
- - If results returned by GitHub API are on multiple pages use ?page=3 to specify a page and ?per_page=100 to specify # max number on each page
- - livegrep has specific file searching in a repo (could be used in conjunction with github api)
-   + livegrep returns in code results and name file results
-   + api for livegrep accessible https://livegrep.com/api/v1/search/ returns json, web query is https://livegrep.com/search/
  - Backend and frontend deployed on server and but frontend can't communicate with backfront
    + direct calls to backend work using bloomRPC
    + does it work locally with bloomrpc ? (yes) once port is published
+ - GITHUB API
+   - If results returned by GitHub API are on multiple pages use ?page=3 to specify a page and ?per_page=100 to specify # max number on each page
+   - For API requests using Basic Authentication or OAuth, you can make up to *5000* requests per hour.
+   - For unauthenticated requests, the rate limit allows for up to *60* requests per hour. 
+ - livegrep has specific file searching in a repo (could be used in conjunction with github api)
+   + livegrep returns in code results and name file results
+   + api for livegrep accessible https://livegrep.com/api/v1/search/ returns json, web query is https://livegrep.com/search/
+   + custom indexing backend, uses Russ Cox's RE2 regex library
+   + livegrep can timeout on large number of matches specified "why=TIMEOUT" but time spend is only 12s so could be extended sometime
+	 + could be due to livegrep trying to be "live" to instantly return results
+   + Walking HEAD like so  Walking repo_spec name=drx/kiwi, path=repos/drx/kiwi (including  submodules: false) is when index is being built for backend
+   + commands like: codesearch_start -grpc localhost:9999  repos/livegrep.json with the repositories already download
+	 - builds an in memory index for the backend for repo_pull_test5 which had 1 20.2G index file this is to large to be run
+	 - this require an external memory mapped index file 
 
 * Tasks
  1) Check the extent of github search functionality (write python code to get results and pull porjects)
@@ -86,15 +117,17 @@
 	- how to get livegrep to index a specific repo not a user
 	  + docker run -v $(pwd):/data livegrep/indexer /livegrep/bin/livegrep-github-reindex -repo livegrep/livegrep -http -dir /data
 	- test the backend codesearch running in docker with direct GRPD requests ([[https://github.com/uw-labs/bloomrpc][Bloomrpc]]) to ensure it works
-
+	
  6) install livegrep on server using docker or build natively
 	- install using blog post (done) or try livegrep repo docker install (trying local install to see if backend and talk to frontend and its just a docker error)
 	- installed nativately and worked, built using bazel 0.26 slightly different from the one stated in projects github
 	- Check different ways of build index of code or to run without building an index using native tool 
 	- find way of passing repository from a list (or github api) to create an index for codesearch backend
 	  + get top 1000 repo results for c language then  build index with the set of repos
-	  + build a json file that specifies the required repos (THIS)
+	  + build a *JSON* file that specifies the required repos (THIS) (what are the formats for local repos, external repo on github (is this possible))
 	  + use inbuilt github indexer and feed it a list a repos individually with flag -repo
+	  + which is faster the github helper tool are starting codesearch directly with a index.json file ? (advantages/disadvantages)
+	  + can livesearch index code not stored in git repo ?
 
  7) How large is GitHub (tb or pb) 
 	- [[https://github.com/search?q=is:public][29 Million public repos]], max size [[https://help.github.com/en/articles/what-is-my-disk-quota][100GB]] so size <2800tb, (need better estimate obviously)
@@ -107,9 +140,21 @@
 	- GitLab: has search capabilities and a Restful API
 	  + [[https://docs.gitlab.com/ee/user/search/advanced_global_search.html][Advanced Global Search]] (powered by Elasticsearch) is not yet available on GitLab.com
 	  + over 1000 repos returned for simple search of ruby pages can keep being request by the looks of it (unlike github)
-	- BitBucket: 
+	- [[https://confluence.atlassian.com/bitbucket/use-the-bitbucket-cloud-rest-apis-222724129.html][BitBucket]]: Restful api & code search ?
+	  + Wildcard searches (e.g. qu?ck buil*) are not supported.
+	  + Regular expressions in queries are not supported, but you can search for special characters.
+	- SourceForge: multiple APIs 	  
+	  + Allura API - A read/write API for reading/writing to project info, tickets, wiki pages, etc
+	  + Download Stats API - A read-only API for obtaining download statistics
+	  + File Release API - set the default download for your project.
 
  9) How well does GitHub Identify repo language types
+
+ 10) Test regex for iterator and see results on large collection
+	 - Is the tool actually useful
+
+ 11) stress test 1000 repos
+
 
 
 * Additional
