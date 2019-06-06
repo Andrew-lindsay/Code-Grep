@@ -13,7 +13,7 @@
 	 - what is it that is being transformed or looked for presence of
 	 - linked list implementation
  - Pulling each repo to run regex over is going to be slow 
- - limitations of github to 30 requests per minute
+ - limitations of github to 30 requests per minute for The Search API
  - Find file contents via various criteria. This method returns up to 100 results per page.
  - sort Default: best match
  - Simplest approach take the live-grep and feed the web server the repositories returned by the github code search (only uses keywords tho not true grep)
