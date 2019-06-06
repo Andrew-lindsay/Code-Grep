@@ -12,7 +12,7 @@ def get_results(key_words, search_type, num_per_page=10):
     response = requests.get(
         "https://api.github.com/search/" + search_type + "?q=" +
         '+'.join(key_words) + "+language:c&per_page=" + str(num_per_page),
-        headers={'Authorization': 'token TOKEN HERE'})
+        headers={'Authorization': 'token 87fbbf6e4d5bbb3cec34970f06c85b097d1cb68f'})
     if response.status_code != 200:
         print('Error Status code: {}'.format(response.status_code))
 
@@ -41,9 +41,9 @@ def get_results(key_words, search_type, num_per_page=10):
 
 
 def main():
-    search_terms = ["language:c", "stars:>10", ]
+    search_terms = ["language:c", "stars:10", ]
     print("search terms: {}".format(search_terms))
-    get_results(search_terms, search_type="repositories", num_per_page=10)
+    get_results(search_terms, search_type="repositories", num_per_page=100)
 
 
 if __name__ == "__main__":
