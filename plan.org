@@ -105,6 +105,9 @@
 	 + 
    + how to remove repos from search in query "hello repo:(Gateworks/linux-imx6|LeMaker/linux-sunxi)" uses regex actually
 	 - kinda odd
+   + ERROR on mass pull of 1200 repos error around repo 900
+	 - GET https://api.github.com/repos/futureshocked/ArduinoSbS2017: 403 You have triggered an abuse detection mechanism. Please wait a few minutes before you try again. []
+	 - staged git pull 
 
 
 * Tasks
@@ -204,12 +207,16 @@
 
 
 * TOD0
-  1) 1000 repo test on server
-  2) Limit problem on results 8000 - 11600 seems to vary a bit something to do with message size being larger than max
-  3) Add multiline grep functionality
+  1) 1200 repo test on server (fail)(after 1)
+	 - 
+  2) Limit problem on results 8000 - 11600 seems to vary a bit something to do with message size being larger than max (3)
+  3) Add multiline grep functionality (2)
 	 - Get context around first line hit in multigrep specfic number of lines of rest of grep to check
 	 - RE2 in python to check
 	 - Need way to directly access server from python quickly grpc python lib
 	 - Line offset in to file
+	 - return number of lines needed for multiline grep (wild card .* regex that can match to \n means every line needs to be taken into account?)
 	 - Will it be quick enough 
-  4) Generic makefile to build projects that are from 
+  4) Generic makefile to build projects that are from (4)
+  5) build script for pulling repos limited on the livegrep tool to 980 (i think) pull repos with depth 1 then have to build json file for codesearch (1)
+	 - or add more code to wrapper to stop the thing from hitting limit pull repos in batches of 800
