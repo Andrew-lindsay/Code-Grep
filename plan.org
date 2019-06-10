@@ -29,7 +29,7 @@
  - What are some local tools that are like grep for large set of files ? ([[https://github.com/google/codesearch][google code search tool]], [[https://beyondgrep.com/][ack - grep opt for programmers]], git grep, )
  - way to limit number of results from each repository
 
-* Things I need to know ? 
+* Things I need to know ?
  - What is going to use the result of the tool ? 
    + Rejuvenation tools
    + People interested in examples of code
@@ -43,6 +43,11 @@
  - livegrep json list of repos pulled stored in same location as repos
  - what is the security concern of donwloading random repos off the internet
  - do repos have unique ids ?
+ - is there a limit on matching time for livegrep query (if so can I increase it or turn it off)
+ - Is livegrep faster when query frontend api to get results (does effect match time ?)
+ - Is backend quering using the grpc protocol quicker (what do you get back ? (json) )
+ - can it regex across lines
+
 
 * Links 
  - [[https://developer.github.com/v3/search/][GitHub Search api]]
@@ -89,10 +94,18 @@
    + custom indexing backend, uses Russ Cox's RE2 regex library
    + livegrep can timeout on large number of matches specified "why=TIMEOUT" but time spend is only 12s so could be extended sometime
 	 + could be due to livegrep trying to be "live" to instantly return results
+	 + there is a flag for setting timeout when starting codesearch
    + Walking HEAD like so  Walking repo_spec name=drx/kiwi, path=repos/drx/kiwi (including  submodules: false) is when index is being built for backend
    + commands like: codesearch_start -grpc localhost:9999  repos/livegrep.json with the repositories already download
 	 - builds an in memory index for the backend for repo_pull_test5 which had 1 20.2G index file this is to large to be run
-	 - this require an external memory mapped index file 
+	 - this require an memory mapped index file
+   + grep searches the named input FILEs for *lines* containing a match to the given PATTERN.
+   + max number of livegrep returns on a simple query was 9100 matches when we had 800 repos in the repository
+	 + larger number when we have less repos ? (No message size is limit )
+	 + 
+   + how to remove repos from search in query "hello repo:(Gateworks/linux-imx6|LeMaker/linux-sunxi)" uses regex actually
+	 - kinda odd
+
 
 * Tasks
  1) Check the extent of github search functionality (write python code to get results and pull porjects)
@@ -128,13 +141,23 @@
 	  + use inbuilt github indexer and feed it a list a repos individually with flag -repo
 	  + which is faster the github helper tool are starting codesearch directly with a index.json file ? (advantages/disadvantages)
 	  + can livesearch index code not stored in git repo ?
+	- Can you limit number of matches per user/repo/file so that the information is not
+	- Can you perform multiline grep in livegrep
+	  + underlying RE2 regex engine
+		1. \n 	newline (≡ \012)
+		2. $ at end of text (like \z not \Z) or line (m=true)
+		3. ^ at beginning of text or line  
+		4. \Z  at end of text, or before newline at end of text (NOT SUPPORTED)
+	  + [[https://github.com/livegrep/livegrep/issues/27][Issue]]: "The livegrep index relies pretty heavily on the fact that searches only operate on single lines to enable usage of the index; 
+        It'd be difficult to generalize it to multiline searches without some pretty deep changes, so it's not supported right now."
+	- Livegrep does have a custom backend [[https://blog.nelhage.com/2015/02/regular-expression-search-with-suffix-arrays/][indexer]] does not use google codesearch this could be the reason for no multi line 
 
  7) How large is GitHub (tb or pb) 
 	- [[https://github.com/search?q=is:public][29 Million public repos]], max size [[https://help.github.com/en/articles/what-is-my-disk-quota][100GB]] so size <2800tb, (need better estimate obviously)
 	- 400,000 GitHub repositories, 1 billion files, 14 terabytes of code - [[https://medium.com/@hoffa/400-000-github-repositories-1-billion-files-14-terabytes-of-code-spaces-or-tabs-7cfe0b5dd7fd][Medium]] 
 	- so maybe 1015tb if (29M/400,000)*14tb (still not good)
 	- repos that are designated c or c++ number around 1M, c = 470k and c++ = 649K
-	  + so 2.5*14tb= 35tb for c/c++ repos
+	- 2.5*14tb= 35tb for c/c++ repos
 
  8) What API/tool exist for GitLab/sourceForge/bitbucket or other source code hosting sites (codeplex, google code)
 	- GitLab: has search capabilities and a Restful API
@@ -148,14 +171,45 @@
 	  + Download Stats API - A read-only API for obtaining download statistics
 	  + File Release API - set the default download for your project.
 
- 9) How well does GitHub Identify repo language types
+ 9) How well does GitHub Identify repo language types (pretty well)
 
- 10) Test regex for iterator and see results on large collection
-	 - Is the tool actually useful
+ 10) Test regex for iterator and see results on large collection (done)
+	 - Is the tool actually useful (some wa)
 
  11) stress test 1000 repos
 
+ 12) Can implment multiline grep hack ?
+
+ 13) Find way to get more than 9100 result if possible ?
+	 - Error/limit
+	   + limit for 800 repos seems to be as above (for simple requests like hello that return a lot)
+	   + tried with "hello" for 100 repos but only got 4500 matches so can't try limit
+	   + search term "he" in 100 repos limit was 8000 (lower than the search for "hello" in 800 repos limit 9100) (very odd)
+		 - error message that gets returned { "error": "8 RESOURCE_EXHAUSTED: Received message larger than max (5296486 vs. 4194304)"}
+		 - due to being 2 letter word ? ()
+	   + Search term "init" in 100 repos: limit 11600 error: { "error": "8 RESOURCE_EXHAUSTED: Received message larger than max (4197748 vs. 4194304)"}
+	   + 
+	 - Solutions
+	   - pagnation of some sort ask for first 9000 (or what ever limit is then next amount not including already requested)
+	   - can limit then change what repos are being searched to produce distinct result below limit build up response
+		 + kind of a hack tho not real fix
+	   - 
+
+ 14) generic make files test on results from a search
+	 - Start by end of day 
 
 
 * Additional
   - check real-world implementations of linked lists how different people define them.
+
+
+* TOD0
+  1) 1000 repo test on server
+  2) Limit problem on results 8000 - 11600 seems to vary a bit something to do with message size being larger than max
+  3) Add multiline grep functionality
+	 - Get context around first line hit in multigrep specfic number of lines of rest of grep to check
+	 - RE2 in python to check
+	 - Need way to directly access server from python quickly grpc python lib
+	 - Line offset in to file
+	 - Will it be quick enough 
+  4) Generic makefile to build projects that are from 
