@@ -23,11 +23,19 @@
  - Incrementaly go through number of stars definitly get diff list of 1000 repos each time :)
  - index files for repos are 5-6x larger than the repos :(
  - does livegrep have someway of paging results endlessly ? (max_matches exists but is that the best way)
+   + limit number of repos searched then combine results of json (require fixed match) 
  - Clang filtering of reposistories ? reduce the number of required repos to search across
  - Could build DB of every repo on github just having some information on it link to reposistory language information (seems possible)
  - Could build index of code on the fly from filtered list of repositories that are passed to code search tool (Repositories actual code could be stored locally if needed)
  - What are some local tools that are like grep for large set of files ? ([[https://github.com/google/codesearch][google code search tool]], [[https://beyondgrep.com/][ack - grep opt for programmers]], git grep, )
  - way to limit number of results from each repository
+ - is there a better backend than livegreps codesearch
+   + searchcode (server) does supply grep
+   + hound is utilises  google code search which allows grep (not multiline) but has network protocol
+   + google code search does not provide multiline and does not implement any kind of protocol (is a local set of tools)
+ - assumption being made that normal local grep search across large collection of files is no efficient enough
+   + should probably test this with the 1072 repos with 311M lines
+ - the index.json file can utilise fully cloned repositories not just bare ones (ones that only have git object file like .pack and .idx) 
 
 * Things I need to know ?
  - What is going to use the result of the tool ? 
@@ -44,9 +52,12 @@
  - what is the security concern of donwloading random repos off the internet
  - do repos have unique ids ?
  - is there a limit on matching time for livegrep query (if so can I increase it or turn it off)
+   + yes found option -timeout 
  - Is livegrep faster when query frontend api to get results (does effect match time ?)
- - Is backend quering using the grpc protocol quicker (what do you get back ? (json) )
- - can it regex across lines
+ - Is backend quering using the grpc protocol quicker (what do you get back -> (json) )
+ - livegrep: can it regex across lines
+   + no
+ - How much slower is git cloning --mirror than normal git clone (both set to depth 1)
 
 
 * Links 
@@ -111,30 +122,30 @@
 
 
 * Tasks
- 1) Check the extent of github search functionality (write python code to get results and pull porjects)
+ 1. Check the extent of github search functionality (write python code to get results and pull porjects)
 	- how many keywords allowed to narrow search	
 
- 2) How would pipeline work 1:
+ 2. How would pipeline work 1:
 	- Users provide some restriction parameters that github can utilise to find repos/files
 	- then User provides patterns of what they want to find (like grep) and they are applied to the repositories found earlier.
 	  - how are regexs defined to identify linked list candidates?
 	  - limited return of github maybe an issue
 	  - time taken to download repository would be a problem ? 
 
- 3) How would pipeline work 2:
+ 3. How would pipeline work 2:
 	- regex provided	
 	- then search made to GitHub api where regex is more specific
 	- collect results from all searchs to the api and return them to the user
 
- 4) Confirm Number of repositories GitHub Api can return (1000)
+ 4. Confirm Number of repositories GitHub Api can return (1000)
 	- get more by using star count diff search 
 
- 5) install livegrep on own machine using docker (stress test) (problematic failed to connect frontend to backend)
+ 5. install livegrep on own machine using docker (stress test) (problematic failed to connect frontend to backend)
 	- how to get livegrep to index a specific repo not a user
 	  + docker run -v $(pwd):/data livegrep/indexer /livegrep/bin/livegrep-github-reindex -repo livegrep/livegrep -http -dir /data
 	- test the backend codesearch running in docker with direct GRPD requests ([[https://github.com/uw-labs/bloomrpc][Bloomrpc]]) to ensure it works
 	
- 6) install livegrep on server using docker or build natively
+ 6. install livegrep on server using docker or build natively
 	- install using blog post (done) or try livegrep repo docker install (trying local install to see if backend and talk to frontend and its just a docker error)
 	- installed nativately and worked, built using bazel 0.26 slightly different from the one stated in projects github
 	- Check different ways of build index of code or to run without building an index using native tool 
@@ -155,14 +166,14 @@
         It'd be difficult to generalize it to multiline searches without some pretty deep changes, so it's not supported right now."
 	- Livegrep does have a custom backend [[https://blog.nelhage.com/2015/02/regular-expression-search-with-suffix-arrays/][indexer]] does not use google codesearch this could be the reason for no multi line 
 
- 7) How large is GitHub (tb or pb) 
+ 7. How large is GitHub (tb or pb) 
 	- [[https://github.com/search?q=is:public][29 Million public repos]], max size [[https://help.github.com/en/articles/what-is-my-disk-quota][100GB]] so size <2800tb, (need better estimate obviously)
 	- 400,000 GitHub repositories, 1 billion files, 14 terabytes of code - [[https://medium.com/@hoffa/400-000-github-repositories-1-billion-files-14-terabytes-of-code-spaces-or-tabs-7cfe0b5dd7fd][Medium]] 
 	- so maybe 1015tb if (29M/400,000)*14tb (still not good)
 	- repos that are designated c or c++ number around 1M, c = 470k and c++ = 649K
 	- 2.5*14tb= 35tb for c/c++ repos
 
- 8) What API/tool exist for GitLab/sourceForge/bitbucket or other source code hosting sites (codeplex, google code)
+ 8. What API/tool exist for GitLab/sourceForge/bitbucket or other source code hosting sites (codeplex, google code)
 	- GitLab: has search capabilities and a Restful API
 	  + [[https://docs.gitlab.com/ee/user/search/advanced_global_search.html][Advanced Global Search]] (powered by Elasticsearch) is not yet available on GitLab.com
 	  + over 1000 repos returned for simple search of ruby pages can keep being request by the looks of it (unlike github)
@@ -174,16 +185,20 @@
 	  + Download Stats API - A read-only API for obtaining download statistics
 	  + File Release API - set the default download for your project.
 
- 9) How well does GitHub Identify repo language types (pretty well)
+ 9. How well does GitHub Identify repo language types (pretty well)
 
- 10) Test regex for iterator and see results on large collection (done)
+ 10. Test regex for iterator and see results on large collection (done)
 	 - Is the tool actually useful (some wa)
 
- 11) stress test 1000 repos
+ 11. stress test 1200 repos (done)
+	 - Call to git clone to quickly is causing the problem
+	 - limited by github [[https://developer.github.com/v3/#abuse-rate-limits][abuse rate limiting]] on the pulling of repositories in the livegrep-github-pull tool
+	 - only pull ~800 repos at once
 
- 12) Can implment multiline grep hack ?
+ 12. Can implment multiline grep hack ?
+	 - interface directly with the 
 
- 13) Find way to get more than 9100 result if possible ?
+ 13. Find way to get more than 9100 result if possible ?
 	 - Error/limit
 	   + limit for 800 repos seems to be as above (for simple requests like hello that return a lot)
 	   + tried with "hello" for 100 repos but only got 4500 matches so can't try limit
@@ -191,14 +206,12 @@
 		 - error message that gets returned { "error": "8 RESOURCE_EXHAUSTED: Received message larger than max (5296486 vs. 4194304)"}
 		 - due to being 2 letter word ? ()
 	   + Search term "init" in 100 repos: limit 11600 error: { "error": "8 RESOURCE_EXHAUSTED: Received message larger than max (4197748 vs. 4194304)"}
-	   + 
 	 - Solutions
 	   - pagnation of some sort ask for first 9000 (or what ever limit is then next amount not including already requested)
 	   - can limit then change what repos are being searched to produce distinct result below limit build up response
 		 + kind of a hack tho not real fix
-	   - 
 
- 14) generic make files test on results from a search
+ 14. Generic make files test on results from a search
 	 - Start by end of day 
 
 
@@ -207,16 +220,18 @@
 
 
 * TOD0
-  1) 1200 repo test on server (fail)(after 1)
-	 - 
-  2) Limit problem on results 8000 - 11600 seems to vary a bit something to do with message size being larger than max (3)
-  3) Add multiline grep functionality (2)
+  1) 1200 repo test on server (fail) (pull repos in 2 batches 800 then 400 after some failing final result 1072 repos)
+	 - really need to know limit of codesearch server by need of the week and if it needs replaced
+  2) Add multiline grep functionality (1) (3h)
+	 - Side get list of repos with results return from search
 	 - Get context around first line hit in multigrep specfic number of lines of rest of grep to check
-	 - RE2 in python to check
-	 - Need way to directly access server from python quickly grpc python lib
-	 - Line offset in to file
+	 - RE2 in python to use mutil-line (other tools are useable RE2 is quick tho)
+	 - Need way to directly access server from python quickly grpc python lib (done)
+	 - Line offset in to file (repo file is remote)
 	 - return number of lines needed for multiline grep (wild card .* regex that can match to \n means every line needs to be taken into account?)
-	 - Will it be quick enough 
-  4) Generic makefile to build projects that are from (4)
-  5) build script for pulling repos limited on the livegrep tool to 980 (i think) pull repos with depth 1 then have to build json file for codesearch (1)
+  3) build script for pulling repos limited on the livegrep tool to 800~900 (i think) pull repos with depth 1 then have to build json file for codesearch (2)
 	 - or add more code to wrapper to stop the thing from hitting limit pull repos in batches of 800
+	 - Double check existing livegrep tool does not have a way around this
+	 - Think about what is required to alter the go source code to build one
+  4) Limit problem on results 8000 - 11600 seems to vary a bit something to do with message size being larger than max (3)
+  5) Generic makefile to build projects that are return by regex search (4)

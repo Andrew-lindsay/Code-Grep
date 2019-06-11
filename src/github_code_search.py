@@ -41,7 +41,7 @@ def get_results(key_words, search_type, num_per_page=10):
 
 
 def main():
-    search_terms = ["language:C++", "stars:10", ]
+    search_terms = ["language:c", "stars:10", ]
     print("search terms: {}".format(search_terms))
     get_results(search_terms, search_type="repositories", num_per_page=100)
 
