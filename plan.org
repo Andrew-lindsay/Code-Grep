@@ -57,7 +57,8 @@
  - Is backend quering using the grpc protocol quicker (what do you get back -> (json) )
  - livegrep: can it regex across lines
    + no
- - How much slower is git cloning --mirror than normal git clone (both set to depth 1)
+ - How much slower is git cloning --mirror than normal git clone (both set to depth 1) size differnce
+ - 
 
 
 * Links 
@@ -119,6 +120,9 @@
    + ERROR on mass pull of 1200 repos error around repo 900
 	 - GET https://api.github.com/repos/futureshocked/ArduinoSbS2017: 403 You have triggered an abuse detection mechanism. Please wait a few minutes before you try again. []
 	 - staged git pull 
+   + Size of message being return error is due to grpc see here: [[https://stackoverflow.com/questions/55362342/grpc-grpc-received-message-larger-than-max-8653851-vs-4194304-golang][grpc message error]]
+	 - fix is here [[https://stackoverflow.com/questions/42629047/how-to-increase-message-size-in-grpc-using-python][extending message size grpc]]
+	 - Need to change server side ? 
 
 
 * Tasks
@@ -217,11 +221,15 @@
 
 * Additional
   - check real-world implementations of linked lists how different people define them.
+  - download top page of repositories instead of stars (what effect it makes)
 
-
+	
 * TOD0
   1) 1200 repo test on server (fail) (pull repos in 2 batches 800 then 400 after some failing final result 1072 repos)
 	 - really need to know limit of codesearch server by need of the week and if it needs replaced
+	 - need to test again to see how large an index can be actually used (current 1000 > 3000 ?)
+	 - how do complex regex patterns effect the searching through the index ?
+	   + does it cause memory to be overwelmed (works for 9000 results from repo of )
   2) Add multiline grep functionality (1) (3h)
 	 - Side get list of repos with results return from search
 	 - Get context around first line hit in multigrep specfic number of lines of rest of grep to check
@@ -229,9 +237,10 @@
 	 - Need way to directly access server from python quickly grpc python lib (done)
 	 - Line offset in to file (repo file is remote)
 	 - return number of lines needed for multiline grep (wild card .* regex that can match to \n means every line needs to be taken into account?)
-  3) build script for pulling repos limited on the livegrep tool to 800~900 (i think) pull repos with depth 1 then have to build json file for codesearch (2)
+  3) build script for pulling repos, limited by the livegrep tool to 800~900 (i think) pull repos with depth 1 then have to build json file for codesearch (2)
 	 - or add more code to wrapper to stop the thing from hitting limit pull repos in batches of 800
-	 - Double check existing livegrep tool does not have a way around this
+	 - Double check existing livegrep tool does not have a way around this 
 	 - Think about what is required to alter the go source code to build one
   4) Limit problem on results 8000 - 11600 seems to vary a bit something to do with message size being larger than max (3)
-  5) Generic makefile to build projects that are return by regex search (4)
+  5) regex for finding iterators, for loops ?, linked list ? 
+  6) Generic makefile to build projects that are return by regex search (4)

@@ -94,7 +94,7 @@ def build_config_file(directory="repos", repo_file="repo_list.txt"):
             config["repositories"].append(repository_entry(repo.strip('\n'), directory))
 
     with open("index.json", "w") as config_json:
-        jump.dump(config, fp=config_json, indent=4)
+        json.dump(config, fp=config_json, indent=4)
     print("==== Config File: index.json created ====")
 
 def main():
