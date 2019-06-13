@@ -90,6 +90,9 @@
  - [[https://github.com/hound-search/hound][Hound ]]: very simialr to livegrep build using Russ Cox: Regular Expression Matching with a Trigram Index.
    + "Create a config.json in a directory with your list of repositories."
    + supported version control systems Git, Mercurial, SVN, Bazaar can be specified per repo in json file
+ - [[https://github.com/ggreer/the_silver_searcher][silver searcher]] - simliar to to ack and grep (supposedly faster)
+   + ag --multiline
+ - [[https://www.pcre.org/original/doc/html/pcregrep.html][pcre]] - multiline grep like tool 
 
 * Notes from trying stuff
  - using list as name of file leads to lot of cs student related learning reposistories
@@ -122,7 +125,12 @@
 	 - staged git pull 
    + Size of message being return error is due to grpc see here: [[https://stackoverflow.com/questions/55362342/grpc-grpc-received-message-larger-than-max-8653851-vs-4194304-golang][grpc message error]]
 	 - fix is here [[https://stackoverflow.com/questions/42629047/how-to-increase-message-size-in-grpc-using-python][extending message size grpc]]
-	 - Need to change server side ? 
+	 - Need to change server side ?
+   + ag
+	 - ag "std::.*::iterator" -G ".cpp" repos/ > res_ag.txt
+   + pcre
+	 - have to feed pcre files to search (ag does not takes directory)
+	 - find . -printf '"%h/%f"\n'  -iname '*.cpp'  | xargs pcregrep -M 'for\s*\([^;]*;[^;]*;[^)]\)' > res_pcgrep.txt
 
 
 * Tasks
@@ -241,6 +249,9 @@
 	 - or add more code to wrapper to stop the thing from hitting limit pull repos in batches of 800
 	 - Double check existing livegrep tool does not have a way around this 
 	 - Think about what is required to alter the go source code to build one
-  4) Limit problem on results 8000 - 11600 seems to vary a bit something to do with message size being larger than max (3)
-  5) regex for finding iterators, for loops ?, linked list ? 
+  4) Fix Limit problem on results being 8000 - 11600 seems to vary a bit something to do with message size being larger than max (3)
+	 - problem woth grpc and needs to be fixed server side pull new copy of code and edit it ?
+	 - or edit to implement pagnation
+  5) regex for finding iterators, for loops ?, linked list ?
+	 - 
   6) Generic makefile to build projects that are return by regex search (4)
