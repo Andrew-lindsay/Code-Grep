@@ -131,6 +131,8 @@
    + pcre
 	 - have to feed pcre files to search (ag does not takes directory)
 	 - find . -printf '"%h/%f"\n'  -iname '*.cpp'  | xargs pcregrep -M 'for\s*\([^;]*;[^;]*;[^)]\)' > res_pcgrep.txt
+   + find repos -name "*.cpp" -or -name "*.h" -or -name "*.cc" -or -name "*.hpp" -or -name "*.cxx" -or -name "*.hxx" | wc -l
+   + Initial search using local multiline grep tools like ag 
 
 
 * Tasks
@@ -253,7 +255,10 @@
   4) Fix Limit problem on results being 8000 - 11600 seems to vary a bit something to do with message size being larger than max (3)
 	 - problem woth grpc and needs to be fixed server side pull new copy of code and edit it ?
 	 - or edit to implement pagnation
-  5) regex for finding iterators, for loops ?, linked list ? (has been tested a little)
-	 - 
-  6) Generic makefile to build projects that are return by regex search (4)
+  5) regex for finding iterators, for loops ?, linked list ? (has been tested a little) 
+
+  6) Download massive amount of repos to test local search on >1500
+  7) create regexs (for loops, linked list, structs)
+  8) Testing tools (ag/codeseach) with regexs
+  9) Generic makefile to build projects that are return by regex search (4)
 	 
