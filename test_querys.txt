@@ -1,0 +1,37 @@
+* Searching for interesting things in source code with regex queries
+  - Definition of a list
+  - For loops of a certain form
+  - Vector having items added to it one after another
+
+
+1) Iterator pattern
+   std::.*::iterator
+   e.g std::vector<string>::iterator
+
+2) FOR loop pattern
+   for\(\s*[\w_][\w0-9_]*\s+[\w_][\w0-9_]*\s*\=\s*[\d\w]+;\s*[\w_][\w0-9_]*\s*<\s*[\w_][\w0-9_]*;\s*[\w_][\w0-9_]*\+\+\s*\)
+   e.g for( int asdf = 0; asd < size; count++)
+
+3) FOR loop pattern
+   Matches for loops with variable being declared used in the intialiser and comparison and the increment 
+   for\s*\(\s*[\w_][\w0-9_]*\s+([\w_][\w0-9_]*)\s*\=\s*[\d\w]+;\s*\1\s*<\s*[\w_][\w0-9_]*;\s*(\+\+)?\1(\+\+)?\s*\)	
+   e.g for( int x = 10; x < 10; x++) required x the be the same in all parts
+
+4) Variable declaration pattern
+   \s*[\w_][\w0-9_]*\s+[\w_][\w0-9_]*\s+\=\s+[\d\w]*
+   e.g int i = 10;
+   [\w_][\w0-9_]*((\s*\*\s*)*|\s*&\s*&?\s*|\s+)[\w_][\w0-9_]*\s*;
+   e.g int** i;
+   More general type signature
+   [\w_][\w0-9<>_]*(::[\w_][\w0-9<>_]*)*((\s*\*\s*)*|\s*&\s*&?\s*|\s+)[\w_][\w0-9_]*\s*;
+   e.g std::vector<string>::iterator** hello;
+
+1) Linked List pattern
+   very naive pattern
+   struct\s+([\w_][\w0-9_]*)\s*{(\s*[\w_][\w0-9_]*\s+[\w_][\w0-9_]*\s*;\s*)*(\1((\s*\*\s*)*|\s*&\s*&?\s*|\s+)[\w_][\w0-9_]*\s*;\s*)(\s*[\w_][\w0-9_]*\s+[\w_][\w0-9_]*;\s*)*\s*};
+   matches struct node{ int dataName; node* nextNode; int dataName;};
+   Notes: types not general enough
+
+2) For loops with iterators
+   for\(\s*[\w_][\w0-9_<>(::)]*::iterator\s+([\w_][\w0-9_]*)\s*\=\s*[\d\w.<>]+;\s*\1\s*<\s*[\w_][\w0-9_]*;\s*(\+\+)?\1(\+\+)?\s*\)
+   e.g for( map<std::wstring>::iterator  it = 10; it < 10; it++){

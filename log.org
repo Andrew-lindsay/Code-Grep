@@ -1,0 +1,24 @@
+Work log
+* Week 2 
+** Thursday
+   - set up local dev for multiline-grep, so don't have to edit it over ssh 
+   - recompiled re2 on machine bug with old compiler
+   - looked into other local grep tool
+   - test other local grep tools ag, pcre, grep -P (300 repos is too small to tell difference, they do take sometime to start up)
+   - pulled larger set of repos to test on
+   - Wrote code for ggrep frontend
+** Friday
+   - downloaded and setup 1500 repo index for codesearch
+   - wrote regexs for search, including a multiline regex for format "for(A;B;C)"
+   - finished codesearch python interface for issuing multiline greps on results from initial codesearch query
+   - tests queries using ag and multigrep codesearch
+   - looked into generic makefiles again
+* Week 3 
+** Monday
+   - Wrote code to merge index.json files for codesearch (short)
+   - Wrote more elaborate regexs to capture structs for linked list, 
+   - Downloaded 2000 more repos and (copied previous 1500) total 3500
+   - Tested "ag" on some regex with 1500 regex
+** Tuesday
+   - Run test queries over repository using ag and codesearch
+   - Had meeting with bjorn

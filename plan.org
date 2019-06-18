@@ -58,7 +58,7 @@
  - livegrep: can it regex across lines
    + no
  - How much slower is git cloning --mirror than normal git clone (both set to depth 1) size differnce
- - 
+ - Is it feasible to capture patterns that maybe linked lists in regex
 
 
 * Links 
@@ -132,7 +132,15 @@
 	 - have to feed pcre files to search (ag does not takes directory)
 	 - find . -printf '"%h/%f"\n'  -iname '*.cpp'  | xargs pcregrep -M 'for\s*\([^;]*;[^;]*;[^)]\)' > res_pcgrep.txt
    + find repos -name "*.cpp" -or -name "*.h" -or -name "*.cc" -or -name "*.hpp" -or -name "*.cxx" -or -name "*.hxx" | wc -l
-   + Initial search using local multiline grep tools like ag 
+   + Initial search using local multiline grep tools like ag
+   + get lines from middle of file: sed -n '1000,1100p;1101q' filename > newfile
+   + ag suffers from very long return times when searching lots of repos with mult line grep (may only be on first run due to caching but still very bad)
+   + codesearch can only selectiely search for one file type at a time :(
+   + codesearch not all escape characters supported debug_error_string = "{"created":"@1560848879.747291311","description":"Error received from peer ipv4:127.0.0.1:9999","file":"src/core/lib/surface/call.cc","file_line":1046,"grpc_message":"line: invalid escape sequence: \1","grpc_status":3}"
+	 - can't utilise capturing group references
+   + can't get more than max_matches ~9000 maybe matches from codesearch to then multiline grep on
+	 - would require some kind of paging system
+	 
 
 
 * Tasks
@@ -228,7 +236,7 @@
  14. Generic make files test on results from a search
 	 - Start by end of day 
 
-
+	   
 * Additional
   - check real-world implementations of linked lists how different people define them.
   - download top page of repositories instead of stars (what effect it makes)
@@ -256,9 +264,17 @@
 	 - problem woth grpc and needs to be fixed server side pull new copy of code and edit it ?
 	 - or edit to implement pagnation
   5) regex for finding iterators, for loops ?, linked list ? (has been tested a little) 
-
-  6) Download massive amount of repos to test local search on >1500
-  7) create regexs (for loops, linked list, structs)
-  8) Testing tools (ag/codeseach) with regexs
+	 
+  6) Download massive amount of repos to test local search on >1500 (done)
+  7) create regexs (for loops, linked list, structs) (done)
+  8) Testing tools (ag/codeseach) with regexs (doing)
   9) Generic makefile to build projects that are return by regex search (4)
+
+  10) built own ag for better control
+  11) tools for build regex expressions
+  12) C preprocessor marco for regex 
+  13) Some form of filtering of repositories before hand (info in a database stars )
+  14) how to create some form of limitation of search or pick off from where you started (list of file names know where to start off)
+  15) how long does it take to run over all the repositories
+  16) what is next: try injecting transformations on source code into the build system?
 	 

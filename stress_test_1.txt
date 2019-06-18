@@ -1,0 +1,220 @@
+	repo_pull_test3
+
+Search term: ['language:c', 'stars:10']
+number of repos: 20
+repo list: 
+repo related pull time: <3mins
+index time: 123.748344s ~= 2mins 3s
+index file size: 6.0G
+repos downloaded size: 523M
+
+== begin metrics ==
+index.bytes 1377977970
+index.bytes.dedup 1163357622
+index.content.chunks 134
+index.content.ranges 46371898
+index.data.chunks 9
+index.files 115,370
+index.lines 46,371,898
+index.lines.dedup 28763594
+== end metrics ==
+
+Queries: Makefile max_matches:10000, res : 4468 matches found / 2.036s 
+
+=======================================================================
+repo_pull_test4
+
+Search term: ['language:c', 'stars:10']
+number of repos: 50
+repo list: 
+repo related pull time: <3mins
+index time: 136.866004s ~= 2mins 14s
+index file size: 6.5G
+repos downloaded size: 
+
+Building filename index...
+repository indexed in 136.866004s
+== begin metrics ==
+index.bytes 1508329383
+index.bytes.dedup 1270660238
+index.content.chunks 145
+index.content.ranges 50441439
+index.data.chunks 10
+index.files 129,336
+index.lines 50,441,439
+index.lines.dedup 31228266
+== end metrics ==
+
+=======================================================================
+repo_pull_test5
+
+Search term: ['language:c', 'stars:10']
+number of repos: 100
+repo list: 
+repo related pull time: <8mins
+index time: 481.258406s ~= 8mins
+index file size: 20G
+repos downloaded size: 1.7G
+
+== begin metrics ==
+index.bytes 4561171853
+index.bytes.dedup 3850649948
+index.content.chunks 439
+index.content.ranges 152496691
+index.data.chunks 29 
+index.files 377,002
+index.lines 152,496,691
+index.lines.dedup 94,190,155
+== end metrics ==
+
+=======================================================================
+repo_pull_test6
+
+Search term: ['language:C++', 'stars:10']
+number of repos: 300
+repo list: 
+repo related pull time: <8mins
+index time: 481.258406s ~= 8mins
+index file size: 13G
+repos downloaded size: 2.7G
+
+== begin metrics ==
+index.bytes 3445451934
+index.bytes.dedup 2462240420
+index.content.chunks 308
+index.content.ranges 98064099
+index.data.chunks 19
+index.files 218,920
+index.lines 103,237,533
+index.lines.dedup 64675264
+== end metrics ==
+
+queries:
+	1) std::.*::iterator max_matches:10000				2691 matches found / 0.791
+	2) .*::iterator max_matches:10000  					8753+ matches found / 4.78s
+	3) [\s\(\)][[:alpha:]]*::iterator max_matches:10000	8696 matches found / 2.341s
+	4) for\(\s*[A-Za-z]* [A-Za-z]{1}[A-Za-z0-9]\s+=\s+ max_matches:1000  675 matches found / 0.888s
+
+=======================================================================
+repo_pull_test7
+
+Search term: ['language:C++', 'stars:10']
+number of repos: 700
+repo list: 
+repo related pull time:
+index time: 481.258406s
+index file size: 31GB
+repos downloaded size: 12GB
+
+== begin metrics ==
+index.bytes 8936419574
+index.bytes.dedup 5950806958
+index.content.chunks 627
+index.content.ranges 205576863
+index.data.chunks 45
+index.files 615,483
+index.lines 238,583,486
+index.lines.dedup 147,601,481
+== end metrics ==
+   
+queries:
+	1) hello								9001 matches found / 0.791
+	2) std::.*::iterator max_matches:10000	7415 matches found / 13.177s 
+
+=======================================================================
+repo_pull_test8
+
+Search term: ['language:C++', 'stars:10-19']
+number of repos: 1072
+repo list: alot
+repo related pull time: 
+index time: 2000.138350s
+index file size: 19GB
+repos downloaded size: 39GB
+
+repository indexed in 2000.138350s
+== begin metrics ==
+index.bytes 11652845239
+index.bytes.dedup 7835119764
+index.content.chunks 674
+index.content.ranges 218850576
+index.data.chunks 59
+index.files 698,549
+index.lines 315,948,857
+index.lines.dedup 182,494,691
+== end metrics ==
+
+================================================================================
+repo_pull_test9 (redo of repo 6 test)- create using own repo clone tool
+e.g "git clone" instead of "git clone --mirror" was used
+
+Search term: ['language:C++', 'stars:10']
+number of repos: 300
+repo list: 
+repo related pull time: 
+index time: 404.597991s
+index file size: 13G
+repos downloaded size: 12GB
+
+repository indexed in 404.597991s
+== begin metrics ==
+index.bytes 3445296476
+index.bytes.dedup 2462554052
+index.content.chunks 306
+index.content.ranges 98055875
+index.data.chunks 19
+index.files 218921
+index.lines 103229309
+index.lines.dedup 64683408
+== end metrics ==
+
+queries:
+	1) [A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,} 100.575s match limit reached
+	   (seemed to fail on livegrep frontend?)
+	   [2019-06-12T09:14:32.381] [e876b24b610965e2931ed1fc63a59c9c]
+	   error status=500 code=internal_error message="Talking to backend: rpc error: code = DeadlineExceeded desc = Deadline Exceeded"
+	2) std::.*::iterator max_matches:9000  43.064s match limit reached (frontend time 14.485s match limit reached 8999+)
+	3) for\([^;]*;[^;]*;[^)]\) max_matches:9000 101.325s exit_reason:TIMEOUT (frontend ERROR: bad response from server I think it is this rpc error: code = DeadlineExceeded )
+    4) for\s*([^;]*;[^;]*;[^)]\) max_matches:12000 hit timelimit again num of results
+
+==================================================
+repo_pull_test10
+
+repository indexed in 2781.547573s
+
+Search term: ['language:C++', 'stars:10-19']
+number of repos: 
+repo list: 
+repo related pull time: 
+index time: 2781.547573s
+index file size: 55G
+repos downloaded size: 82GB
+
+== begin metrics ==
+index.bytes 17833003312
+index.bytes.dedup 11004212868
+index.content.chunks 976
+index.content.ranges 320798434
+index.data.chunks 82
+index.files 1,085,664
+index.lines 412,428,298
+index.lines.dedup 245347696
+== end metrics ==
+
+
+==================================================
+repo_pull_test11
+
+repository indexed in 2743.855077s
+
+== begin metrics ==
+index.bytes 17833003312
+index.bytes.dedup 11004212868
+index.content.chunks 976
+index.content.ranges 320798434
+index.data.chunks 82
+index.files 1,085,664
+index.lines 412428298
+index.lines.dedup 245347696
+== end metrics ==
+
