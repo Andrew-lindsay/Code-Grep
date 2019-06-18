@@ -271,10 +271,16 @@
   9) Generic makefile to build projects that are return by regex search (4)
 
   10) built own ag for better control
-  11) tools for build regex expressions
+	  - Timeout, get results in any format,
+	  - Is single thread re2 regex quick enough (what are the limiting factors: python read file? printing/IO)
+	  - Need to parallelise it check each file in parallel
+  11) tools for building regex expressions
   12) C preprocessor marco for regex 
   13) Some form of filtering of repositories before hand (info in a database stars )
   14) how to create some form of limitation of search or pick off from where you started (list of file names know where to start off)
   15) how long does it take to run over all the repositories
   16) what is next: try injecting transformations on source code into the build system?
 	 
+
+
+

@@ -1,0 +1,24 @@
+Testing query (multiline as well)
+
+
+Query 1: \s*[\w_][\w0-9_]*\s+[\w_][\w0-9_]*\s+\=\s+[\d\w];*
+	  ag: try=1 matches=101,835 time=3m19.684s (ended early due to number of matches)
+	  	  try=2 matches=101,849 time=0m35.153s (caching effect)
+		  
+	  cs: try=1 matches=21,457 time=0m2.805s
+	  	  try=2 matches=21,839 time=0m1.337s
+
+Query 2: for\s*\(\s*[\w_][\w0-9_]*\s+([\w_][\w0-9_]*)\s*\=\s*[\d\w]+;\s*\1\s*<\s*[\w_][\w0-9_]*;\s*(\+\+)?\1(\+\+)?\s*\)
+	  ag: try=1 matches=100,308 time=6m45.338s (ended early due to number of matches (my choice)) (maybe off a little on match due to multiline)
+	  	  try=2 matches=104909 time=0m8.474s
+		  
+	  cs: try=1 matches=1887 time=0m5.464s
+	  	  try=2 matches=1811 time=0m7.034s
+
+
+Query 3: struct\s+([\w_][\w0-9_]*)\s*{(\s*[\w_][\w0-9_]*\s+[\w_][\w0-9_]*\s*;\s*)*(\1((\s*\*\s*)*|\s*&\s*&?\s*|\s+)[\w_][\w0-9_]*\s*;\s*)(\s*[\w_][\w0-9_]*\s+[\w_][\w0-9_]*;\s*)*\s*};
+	  ag: try=1 matches=69 (294 lines) time=8m40.982s (stop my me due to time taken)
+	  	  try=2 matches=8  (37 lines) time=3m37.196s
+		  
+	  cs: try=1 matches=0 time=11m3.438s
+	  	  try=2 matches= time=
