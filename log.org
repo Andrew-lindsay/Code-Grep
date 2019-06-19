@@ -22,4 +22,10 @@ Work log
 ** Tuesday
    - Run test queries over repository using ag and codesearch
    - Had meeting with bjorn
-   - 
+   - Wrote simple python code for searching all directories
+   - investigate how to parallelise the approach to get better performance
+** Wednesday
+   - Learned and set up tmux
+   - tested time taken by ag to search entire repo
+   - tested ack
+

@@ -9,7 +9,7 @@
    e.g std::vector<string>::iterator
 
 2) FOR loop pattern
-   for\(\s*[\w_][\w0-9_]*\s+[\w_][\w0-9_]*\s*\=\s*[\d\w]+;\s*[\w_][\w0-9_]*\s*<\s*[\w_][\w0-9_]*;\s*[\w_][\w0-9_]*\+\+\s*\)
+   for\*\(\s*[\w_][\w0-9_]*\s+[\w_][\w0-9_]*\s*\=\s*[\d\w]+;\s*[\w_][\w0-9_]*\s*<\s*[\w_][\w0-9_]*;\s*[\w_][\w0-9_]*\+\+\s*\)
    e.g for( int asdf = 0; asd < size; count++)
 
 3) FOR loop pattern
