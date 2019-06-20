@@ -9,7 +9,7 @@ import itertools
 import Queue
 
 
-# ======================Process Pool approach========================
+# ====================== Process Pool approach ========================
 def pool_multiproc(query, nprocs=4):
     """ requires reading/gathering all directories at once"""
     p = Pool(processes=nprocs)
@@ -58,12 +58,17 @@ def search_worker(query, file_names, results, id, time_limit=-1):
 
         if time_limit > 0:
             try:
-                file_name = file_names.get(timeout=time_limit)
+                tim_l = time_limit - (time.time() - start_time)
+                file_name = file_names.get(timeout=tim_l)
             except Queue.Empty as e:
                 file_name = None
-                print("ERROR: {}".format(e))
+                print("Time Waiting on get exceed limit exit: {}".format(e))
         else:
             file_name = file_names.get()
+
+        if (time.time() - start_time) > time_limit and time_limit != -1:
+            print("Time limit exceeded: {}".format(time_limit))
+            break
 
         if file_name is None:
             break
@@ -79,7 +84,7 @@ def search_worker(query, file_names, results, id, time_limit=-1):
     results.append(regex_hits)
 
 
-def mgsearch_parallel(query, nprocs=4, time_limit=-1):
+def mgsearch_parallel(query, nprocs=4, time_limit=-1, max_matches=-1):
     # setup shared data structures
     manager = Manager()
     file_queue = manager.Queue(nprocs)  # set max size
@@ -101,12 +106,14 @@ def mgsearch_parallel(query, nprocs=4, time_limit=-1):
         if time_limit > 0:
             try:
                 for file_name in iters:
-                    file_queue.put(file_name, timeout=time_limit)
-            except Queue.Full as e:
-                    print("Queue full time out reached so break: {}".format(e))
+                    # time_lim - time taken
+                    file_queue.put(file_name, timeout=time_limit -
+                                   (time.time() - start_time))
+            except (ValueError, Queue.Full) as e:
+                print("Time out reached so break: {}".format(e))
         else:
             for file_name in iters:
-                    file_queue.put(file_name)
+                file_queue.put(file_name)
 
     # wait for child processes
     for p in pool:
@@ -164,7 +171,8 @@ def main():
         sys.exit(1)
 
     print(sys.argv)
-    mgsearch_parallel(nprocs=4, query=query_arg, time_limit=float(t_lim))
+    mgsearch_parallel(nprocs=4, query=query_arg,
+                      time_limit=float(t_lim), max_matches=-1)
     # =====================================
     # mgsearch(query=query_arg)
     # =====================================
