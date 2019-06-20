@@ -282,20 +282,21 @@
 	 - Is single thread re2 regex quick enough (what are the limiting factors: python read file? printing/IO)
 	 - Need to parallelise it, to check each file in parallel 8 processes ? 
 	   + how to handle cutting up of files to search: have list of files, search independently through repos
-	 - Features
+	 - Features (1)
+	   + Better way of locating files of interest than from a file of names
 	   + Stop search after a set time
 	   + Stop search after a certain number of matches
 	   + Limit Number of matches in a file
+	   + Pagenation of results 
 	   + return line numbers ? (not doable with re2 python module :()
 	   + Be able to limit search of repositories by some metrics: size, # of stars, language: c|c++, certain file endings
 		 * select repos to search based on tags ? 
-
-
+  7) Format of results
   6) tools for building regex expressions
-  7) C preprocessor marco for regex 
-  8) Some form of filtering of repositories before hand (info in a database stars)
-  9) how to create some form of limitation of search or pick off from where you started (list of file names know where to start off)
-  10) how long does it take to run over all the repositories
+  8) C preprocessor marco for regex (2)
+  9) Some form of filtering of repositories before hand (info in a database stars)
+  10) how to create some form of limitation of search or pick off from where you started (list of file names know where to start off)
+  11) how long does it take to run over all the repositories
 	  - time $(ag --cpp --multiline "std::.*::iterator" repos/ > ag_res.txt)
          real	30m6.441s
          user	0m43.096s
@@ -304,7 +305,7 @@
 		real	30m56.252s
 		user	5m56.449s
 		sys	1m17.087s
-  11) what is next: try injecting transformations on source code into the build system?
+  12) what is next: try injecting transformations on source code into the build system?
 	 
 
 

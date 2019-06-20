@@ -6,8 +6,10 @@ import sys
 import time
 from multiprocessing import Process, Pool, Manager
 import itertools
+import Queue
 
 
+# ======================Process Pool approach========================
 def pool_multiproc(query, nprocs=4):
     """ requires reading/gathering all directories at once"""
     p = Pool(processes=nprocs)
@@ -21,7 +23,6 @@ def pool_multiproc(query, nprocs=4):
     # Using file to pass files name to grep
     with open("file_names.txt", "r") as fn:
         file_names = fn.readlines()
-    # =====================================
 
     res = p.map(worker, [(query, f) for f in file_names])
     print("=== Number of hits: {} ===".format(sum(res)))
@@ -43,15 +44,26 @@ def worker(data):
     # print("=== Number of hits: {} ===".format(regex_hits))
     out.close()
     return regex_hits
+# =========================================================================
 
 
-def search_worker(query, file_names, results, id):
+def search_worker(query, file_names, results, id, time_limit=-1):
+    """ Code run for each process of parallel search """
     query_re = re2.compile(query, re2.MULTILINE)
     regex_hits = 0
     out_file = open("res{}.out".format(id), "w")
+    start_time = time.time()
 
     while True:
-        file_name = file_names.get()
+
+        if time_limit > 0:
+            try:
+                file_name = file_names.get(timeout=time_limit)
+            except Queue.Empty as e:
+                file_name = None
+                print("ERROR: {}".format(e))
+        else:
+            file_name = file_names.get()
 
         if file_name is None:
             break
@@ -67,25 +79,41 @@ def search_worker(query, file_names, results, id):
     results.append(regex_hits)
 
 
-def mgsearch_parallel(query, nprocs=4):
+def mgsearch_parallel(query, nprocs=4, time_limit=-1):
+    # setup shared data structures
     manager = Manager()
     file_queue = manager.Queue(nprocs)  # set max size
-    results = manager.list()
+    results = manager.list()  # list of results
+    start_time = time.time()
 
+    # start processes
     pool = []
-    for num in xrange(nprocs):
+    for proc_id in xrange(nprocs):
         p = Process(target=search_worker, args=(
-            query, file_queue, results, num))
+            query, file_queue, results, proc_id, time_limit))
         p.start()
         pool.append(p)
 
+    # create data: files names to search
     with open("file_names.txt", "r") as fn:
         iters = itertools.chain(fn, (None,) * nprocs)
-        for file_name in iters:
-            file_queue.put(file_name)
 
+        if time_limit > 0:
+            try:
+                for file_name in iters:
+                    file_queue.put(file_name, timeout=time_limit)
+            except Queue.Full as e:
+                    print("Queue full time out reached so break: {}".format(e))
+        else:
+            for file_name in iters:
+                    file_queue.put(file_name)
+
+    # wait for child processes
     for p in pool:
+        # if p.is_alive():
         p.join()
+
+    print("all procs finished")
 
     # remove output file if it exists
     res_file = "mg_res.txt"
@@ -93,6 +121,7 @@ def mgsearch_parallel(query, nprocs=4):
         os.remove(res_file)
     final_res_file = open(res_file, "a")
 
+    # combine result files
     for n in xrange(nprocs):
         fn = "res{}.out".format(n)
         out_file = open(fn, "r")
@@ -104,7 +133,9 @@ def mgsearch_parallel(query, nprocs=4):
     print("=== Number of hits: {} ===".format(sum(results)))
 
 
+# =============================================================
 def mgsearch(query):
+    """ Single process approach to multiline grep search"""
     query_re = re2.compile(query, re2.MULTILINE)
 
     file_list = open("file_names.txt", "r")
@@ -121,9 +152,19 @@ def mgsearch(query):
 
 def main():
     """ Handles passing of args to function """
-    query_arg = sys.argv[1]
+    s_arg = len(sys.argv)
+    if s_arg >= 3:
+        query_arg = sys.argv[1]
+        t_lim = sys.argv[2]
+    elif s_arg == 2:
+        query_arg = sys.argv[1]
+        t_lim = -1
+    else:
+        print("ERROR: to few args")
+        sys.exit(1)
+
     print(sys.argv)
-    mgsearch_parallel(nprocs=4, query=query_arg)
+    mgsearch_parallel(nprocs=4, query=query_arg, time_limit=float(t_lim))
     # =====================================
     # mgsearch(query=query_arg)
     # =====================================
