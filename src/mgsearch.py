@@ -7,6 +7,7 @@ import time
 from multiprocessing import Process, Pool, Manager
 import itertools
 import Queue
+import argparse
 
 
 # ====================== Process Pool approach ========================
@@ -47,7 +48,7 @@ def worker(data):
 # =========================================================================
 
 
-def search_worker(query, file_names, results, id, time_limit=-1):
+def search_worker(query, file_names, results, id, time_limit=-1, max_matches=-1):
     """ Code run for each process of parallel search """
     query_re = re2.compile(query, re2.MULTILINE)
     regex_hits = 0
@@ -56,7 +57,7 @@ def search_worker(query, file_names, results, id, time_limit=-1):
 
     while True:
 
-        if time_limit > 0:
+        if time_limit is not None:
             try:
                 tim_l = time_limit - (time.time() - start_time)
                 file_name = file_names.get(timeout=tim_l)
@@ -66,7 +67,7 @@ def search_worker(query, file_names, results, id, time_limit=-1):
         else:
             file_name = file_names.get()
 
-        if (time.time() - start_time) > time_limit and time_limit != -1:
+        if time_limit is not None and (time.time() - start_time) > time_limit:
             print("Time limit exceeded: {}".format(time_limit))
             break
 
@@ -79,12 +80,15 @@ def search_worker(query, file_names, results, id, time_limit=-1):
                     file_name.strip('\n'), res_q.group()))
                 regex_hits += 1
 
+                # if regex_hits > max_matches and max_matches != -1:
+                    # break
+
     # clean up
     out_file.close()
     results.append(regex_hits)
 
 
-def mgsearch_parallel(query, nprocs=4, time_limit=-1, max_matches=-1):
+def mgsearch_parallel(query, nprocs=4, time_limit=None, max_matches=-1):
     # setup shared data structures
     manager = Manager()
     file_queue = manager.Queue(nprocs)  # set max size
@@ -95,7 +99,7 @@ def mgsearch_parallel(query, nprocs=4, time_limit=-1, max_matches=-1):
     pool = []
     for proc_id in xrange(nprocs):
         p = Process(target=search_worker, args=(
-            query, file_queue, results, proc_id, time_limit))
+            query, file_queue, results, proc_id, time_limit, max_matches))
         p.start()
         pool.append(p)
 
@@ -103,7 +107,7 @@ def mgsearch_parallel(query, nprocs=4, time_limit=-1, max_matches=-1):
     with open("file_names.txt", "r") as fn:
         iters = itertools.chain(fn, (None,) * nprocs)
 
-        if time_limit > 0:
+        if time_limit is not None:
             try:
                 for file_name in iters:
                     # time_lim - time taken
@@ -159,20 +163,51 @@ def mgsearch(query):
 
 def main():
     """ Handles passing of args to function """
-    s_arg = len(sys.argv)
-    if s_arg >= 3:
-        query_arg = sys.argv[1]
-        t_lim = sys.argv[2]
-    elif s_arg == 2:
-        query_arg = sys.argv[1]
-        t_lim = -1
-    else:
-        print("ERROR: to few args")
-        sys.exit(1)
 
-    print(sys.argv)
-    mgsearch_parallel(nprocs=4, query=query_arg,
-                      time_limit=float(t_lim), max_matches=-1)
+    parser = argparse.ArgumentParser(
+        "Search throught set of files defined by a file")
+    parser.add_argument('--query', '-q', action="store",
+                        type=str, required=True)
+    parser.add_argument('--nprocs', '-np', action="store",
+                        type=int, required=True)
+    parser.add_argument('--max_matches', '-mm', action="store", type=int)
+    parser.add_argument('--timeout', '-t', action="store", type=int)
+
+    x = parser.parse_args()
+    query_arg = x.query
+    nprocs = x.nprocs
+    max_matches = x.max_matches
+    time_limit = x.timeout
+
+    print("q: {}, np: {}, mm: {}, t: {}".format(
+        query_arg, nprocs, max_matches, time_limit))
+
+    if time_limit is not None and max_matches is not None:
+        print("Cannot set both max_matches and timeout")
+
+    # s_arg = len(sys.argv)
+    # if s_arg >= 4:
+    #     query_arg = sys.argv[1]
+    #     t_lim = sys.argv[2]
+    #     mm = sys.argv[3]
+    # elif s_arg >= 3:
+    #     query_arg = sys.argv[1]
+    #     t_lim = sys.argv[2]
+    #     mm = -1
+    # elif s_arg == 2:
+    #     query_arg = sys.argv[1]
+    #     t_lim = -1
+    #     mm = -1
+    # else:
+    #     print("ERROR: to few args")
+    #     sys.exit(1)
+
+    # print(sys.argv)
+    # mgsearch_parallel(nprocs=4, query=query_arg,
+    #                   time_limit=float(t_lim), max_matches=int(mm))
+
+    mgsearch_parallel(nprocs=nprocs, query=query_arg,
+                      time_limit=time_limit, max_matches=max_matches)
     # =====================================
     # mgsearch(query=query_arg)
     # =====================================
