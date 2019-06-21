@@ -284,10 +284,10 @@
 	   + how to handle cutting up of files to search: have list of files, search independently through repos
 	 - Features (1)
 	   + Better way of locating files of interest than from a file of names
-	   + Stop search after a set time
-	   + Stop search after a certain number of matches
-	   + Limit Number of matches in a file
-	   + Pagenation of results 
+	   + Stop search after a set time (done)
+	   + Stop search after a certain number of matches ()
+	   + Limit Number of matches in a file ()
+	   + Pagenation of results
 	   + return line numbers ? (not doable with re2 python module :()
 	   + Be able to limit search of repositories by some metrics: size, # of stars, language: c|c++, certain file endings
 		 * select repos to search based on tags ? 

@@ -4,7 +4,7 @@ import re2
 import os
 import sys
 import time
-from multiprocessing import Process, Pool, Manager
+from multiprocessing import Process, Pool, Manager, active_children
 import itertools
 import Queue
 import argparse
@@ -48,13 +48,14 @@ def worker(data):
 # =========================================================================
 
 
-def search_worker(query, file_names, results, id, time_limit=-1, max_matches=-1):
+def search_worker(query, file_names, results, id, time_limit=None, max_matches=None):
     """ Code run for each process of parallel search """
     query_re = re2.compile(query, re2.MULTILINE)
     regex_hits = 0
     out_file = open("res{}.out".format(id), "w")
     start_time = time.time()
 
+    # loop until no more data provided in queue or timelimit or max matches met
     while True:
 
         if time_limit is not None:
@@ -79,20 +80,20 @@ def search_worker(query, file_names, results, id, time_limit=-1, max_matches=-1)
                 out_file.write("{}: {}\n".format(
                     file_name.strip('\n'), res_q.group()))
                 regex_hits += 1
-
-                # if regex_hits > max_matches and max_matches != -1:
-                    # break
+        # assuming decrease in search time if needing to push results to shared queue 
+        if max_matches is not None:
+            results[id] = regex_hits
 
     # clean up
     out_file.close()
-    results.append(regex_hits)
+    results[id] = regex_hits
 
 
-def mgsearch_parallel(query, nprocs=4, time_limit=None, max_matches=-1):
+def mgsearch_parallel(query, nprocs=4, time_limit=None, max_matches=None):
     # setup shared data structures
     manager = Manager()
     file_queue = manager.Queue(nprocs)  # set max size
-    results = manager.list()  # list of results
+    results = manager.list([0] * nprocs)  # list of results
     start_time = time.time()
 
     # start processes
@@ -115,6 +116,21 @@ def mgsearch_parallel(query, nprocs=4, time_limit=None, max_matches=-1):
                                    (time.time() - start_time))
             except (ValueError, Queue.Full) as e:
                 print("Time out reached so break: {}".format(e))
+        elif max_matches is not None:
+            # not all items will be comsumed if max_matches set
+            while sum(results) < max_matches:
+                # print(sum(results))
+                try:
+                    file_queue.put(next(iters))
+                except StopIteration:
+                    print("All Files added to work queue")
+                    break
+
+            # shutdown all process once max_matches reached
+            # chance this blocks forever if already processes stopped
+            print("CHILDERN: {}".format(len(active_children()) - 1))
+            for _ in range(len(active_children()) - 1):
+                file_queue.put(None)
         else:
             for file_name in iters:
                 file_queue.put(file_name)
@@ -165,13 +181,19 @@ def main():
     """ Handles passing of args to function """
 
     parser = argparse.ArgumentParser(
-        "Search throught set of files defined by a file")
-    parser.add_argument('--query', '-q', action="store",
-                        type=str, required=True)
-    parser.add_argument('--nprocs', '-np', action="store",
-                        type=int, required=True)
-    parser.add_argument('--max_matches', '-mm', action="store", type=int)
-    parser.add_argument('--timeout', '-t', action="store", type=int)
+        "Grep throught set of files defined by file file_names.txt (multiline grep supported through re2 libaray)")
+    parser.add_argument('--query', '-q', 
+        help='Regular expression to be used in search',
+         action="store", type=str, required=True)
+    parser.add_argument('--nprocs', '-np', 
+        help='Number of processes to spawn to search in parallel',
+         action="store", type=int)
+    parser.add_argument('--max_matches', '-mm',
+        help='Max number of matches before',
+        action="store", type=int)
+    parser.add_argument('--timeout', '-t',
+        help='Specify the length of time the search should run fro before exiting',
+        action="store", type=int)
 
     x = parser.parse_args()
     query_arg = x.query
@@ -182,25 +204,10 @@ def main():
     print("q: {}, np: {}, mm: {}, t: {}".format(
         query_arg, nprocs, max_matches, time_limit))
 
+    nprocs = 4 if nprocs is None else nprocs
+
     if time_limit is not None and max_matches is not None:
         print("Cannot set both max_matches and timeout")
-
-    # s_arg = len(sys.argv)
-    # if s_arg >= 4:
-    #     query_arg = sys.argv[1]
-    #     t_lim = sys.argv[2]
-    #     mm = sys.argv[3]
-    # elif s_arg >= 3:
-    #     query_arg = sys.argv[1]
-    #     t_lim = sys.argv[2]
-    #     mm = -1
-    # elif s_arg == 2:
-    #     query_arg = sys.argv[1]
-    #     t_lim = -1
-    #     mm = -1
-    # else:
-    #     print("ERROR: to few args")
-    #     sys.exit(1)
 
     # print(sys.argv)
     # mgsearch_parallel(nprocs=4, query=query_arg,

@@ -31,6 +31,10 @@ Work log
    - wrote parallel version of tool using processes pools (not tested)
    - wrote parrallel version of own ag tool (just about as fast as ag when run with same number of cores i.e 8)
 ** Thursday
+   - Implemented timeout argument to limit length of search 
+   - Wrote python code to stop search after a set number of matches
+   - Implemented passing of args on commandline with flags, by using argsparse module
+** Friday
    - 
    - 
 
