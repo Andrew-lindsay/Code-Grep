@@ -268,9 +268,7 @@
   4) Fix Limit problem on results being 8000 - 11600 seems to vary a bit something to do with message size being larger than max (3)
 	 - problem woth grpc and needs to be fixed server side pull new copy of code and edit it ?
 	 - or edit to implement pagnation
-  5) regex for finding iterators, for loops ?, linked list ? (done)
-	 
-  6) Download massive amount of repos to test local search on >1500 (done)
+  5) regex for finding iterators, for loops ?, linked list ? (done)	 
   =====
   1) create regexs (for loops, linked list, structs) (done)
   2) 
@@ -291,16 +289,19 @@
 		 + search already launch with pattern with either max_matches set or timelimit set do you want to get next set of results ? 
 		 + start search at file after last one processed  (needs some storage measure or order to files searched to be able to return to a specific location in a search)
 		 + json file of searched for patterns and where to in the search they got
-	   + Be able to limit search of repositories by some metrics: size, # of stars, language: c|c++, certain file endings
+	   + Be able to limit search of repositories by some metrics: size, # of stars, language: c|c++, certain file endings (done)
 		 * select repos to search based on tags ?
 		 * have to build a database of info based on repos
-	   + return line numbers ? (not doable with re2 python module :()
-  6) Format of results
-  7) tools for building regex expressions
-  8) C preprocessor marco for regex (2)
-  9) Some form of filtering of repositories before hand (info in a database stars)
-  10) how to create some form of limitation of search or pick off from where you started (list of file names know where to start off)
-  11) how long does it take to run over all the repositories
+	   + return line numbers ? (not doable with re2 python module :( )
+  6) Build database of repositories
+	 - query database to return a list (generator ?) of repositories of interest than are then searched instead of the entire set of repositories downloaded
+	 - 
+  7) Format of results
+  8) tools for building regex expressions
+  9) C preprocessor marco for regex (2)
+  10) Some form of filtering of repositories before hand (info in a database stars)
+  11) how to create some form of limitation of search or pick off from where you started (list of file names know where to start off)
+  12) how long does it take to run over all the repositories
 	  - time $(ag --cpp --multiline "std::.*::iterator" repos/ > ag_res.txt)
          real	30m6.441s
          user	0m43.096s
@@ -309,9 +310,22 @@
 		real	30m56.252s
 		user	5m56.449s
 		sys	1m17.087s
-  12) what is next: try injecting transformations on source code into the build system?
+  13) what is next: try injecting transformations on source code into the build system?
 	 
 
+* Repository filtering
+** Information to store
+   - Name of user
+   - Name of repository
+   - Number of stars
+   - size of repository
+   - Major language of repository e.i cpp, c, html, etc...
+   - year
+   - topics ? 
 
-
-  
+** Relational Database
+   - Need to build database when pulling the repositorys locally (or build from a config file )
+   - 
+** Json nosql approach
+   - 
+   - 
