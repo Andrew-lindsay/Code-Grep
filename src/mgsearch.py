@@ -2,6 +2,7 @@
 
 import re2
 import os
+from os.path import join
 import sys
 import time
 from multiprocessing import Process, Pool, Manager, active_children
@@ -80,7 +81,8 @@ def search_worker(query, file_names, results, id, time_limit=None, max_matches=N
                 out_file.write("{}: {}\n".format(
                     file_name.strip('\n'), res_q.group()))
                 regex_hits += 1
-        # assuming decrease in search time if needing to push results to shared queue 
+
+        # assuming decrease in search time if needing to push results to shared queue
         if max_matches is not None:
             results[id] = regex_hits
 
@@ -89,12 +91,87 @@ def search_worker(query, file_names, results, id, time_limit=None, max_matches=N
     results[id] = regex_hits
 
 
-def mgsearch_parallel(query, nprocs=4, time_limit=None, max_matches=None):
+def kill_process():
+    pass
+
+
+def produce_data(file_queue, results, time_limit, max_matches, nprocs, pathfile=None, list_dir=None, endings=None, filetypes=None):
+    """ File paths on to shared queue for processes to access """
+    if pathfile is not None:
+        try:
+            fn = open(pathfile, "r")
+        except IOError as e:
+            print("ERROR: {}".format(e))
+
+            sys.exit(1)
+    else:
+        # default search directory is repos
+        list_dir = list_dir if list_dir is not None else ["repos"]
+        fn = search_dirs(list_dir, endings=endings, filetypes=filetypes)
+
+    iters = itertools.chain(fn, (None,) * len(results))
+    start_time = time.time()
+
+    if time_limit is not None:
+        try:
+            for file_name in iters:
+                # time_lim - time taken
+                file_queue.put(file_name, timeout=time_limit -
+                               (time.time() - start_time))
+        except (ValueError, Queue.Full) as e:
+            print("Time out reached so break: {}".format(e))
+
+    elif max_matches is not None:
+        # not all items will be comsumed if max_matches set
+        while sum(results) < max_matches:
+            # print(sum(results))
+            try:
+                file_queue.put(next(iters))
+            except StopIteration:
+                print("All Files added to work queue")
+                break
+
+        # shutdown all process once max_matches reached
+        # chance this blocks forever if already processes stopped
+        print("CHILDERN: {}".format(len(active_children()) - 1))
+        for _ in range(len(active_children()) - 1):
+            file_queue.put(None)
+
+    else:
+        for file_name in iters:
+            file_queue.put(file_name)
+
+
+def search_dirs(list_dir, endings=None, filetypes=None):
+    """ Recursive search of directories to get file names """
+    allowed_file_types = ("")
+    if endings is not None:
+        allowed_file_types = tuple(endings)
+    elif filetypes is not None:
+        if filetypes == "cpp":
+            allowed_file_types = (".cpp", ".cc", ".C", ".cxx",
+                                  ".m", ".hpp", ".hh", ".h", ".h++",
+                                  ".H", ".hxx", ".tpp", ".c++")
+        elif filetypes == "c":
+            allowed_file_types = (".c", ".h")
+
+    print("allowed_file_types: {}".format(allowed_file_types))
+
+    for dir_n in list_dir:
+        if os.path.isfile(dir_n):
+            print("{} is not a directory")
+            continue
+        for (dirpath, dirs, filesnames) in os.walk(dir_n):
+            for file_ in filesnames:
+                if file_.endswith(allowed_file_types):
+                    yield join(dirpath, file_)
+
+
+def mgsearch_parallel(query, nprocs=4, time_limit=None, max_matches=None, listdirs=None, pathfile=None, endings=None, filetypes=None):
     # setup shared data structures
     manager = Manager()
     file_queue = manager.Queue(nprocs)  # set max size
     results = manager.list([0] * nprocs)  # list of results
-    start_time = time.time()
 
     # start processes
     pool = []
@@ -105,35 +182,8 @@ def mgsearch_parallel(query, nprocs=4, time_limit=None, max_matches=None):
         pool.append(p)
 
     # create data: files names to search
-    with open("file_names.txt", "r") as fn:
-        iters = itertools.chain(fn, (None,) * nprocs)
-
-        if time_limit is not None:
-            try:
-                for file_name in iters:
-                    # time_lim - time taken
-                    file_queue.put(file_name, timeout=time_limit -
-                                   (time.time() - start_time))
-            except (ValueError, Queue.Full) as e:
-                print("Time out reached so break: {}".format(e))
-        elif max_matches is not None:
-            # not all items will be comsumed if max_matches set
-            while sum(results) < max_matches:
-                # print(sum(results))
-                try:
-                    file_queue.put(next(iters))
-                except StopIteration:
-                    print("All Files added to work queue")
-                    break
-
-            # shutdown all process once max_matches reached
-            # chance this blocks forever if already processes stopped
-            print("CHILDERN: {}".format(len(active_children()) - 1))
-            for _ in range(len(active_children()) - 1):
-                file_queue.put(None)
-        else:
-            for file_name in iters:
-                file_queue.put(file_name)
+    produce_data(file_queue, results, time_limit, max_matches, nprocs, list_dir=[
+                 "repos"], pathfile=pathfile, endings=endings, filetypes=filetypes)
 
     # wait for child processes
     for p in pool:
@@ -182,28 +232,43 @@ def main():
 
     parser = argparse.ArgumentParser(
         "Grep throught set of files defined by file file_names.txt (multiline grep supported through re2 libaray)")
-    parser.add_argument('--query', '-q', 
-        help='Regular expression to be used in search',
-         action="store", type=str, required=True)
-    parser.add_argument('--nprocs', '-np', 
-        help='Number of processes to spawn to search in parallel',
-         action="store", type=int)
+    parser.add_argument('--query', '-q',
+                        help='Regular expression to be used in search',
+                        action="store", type=str, required=True)
+    parser.add_argument('--nprocs', '-np',
+                        help='Number of processes to spawn to search in parallel',
+                        action="store", type=int)
     parser.add_argument('--max_matches', '-mm',
-        help='Max number of matches before',
-        action="store", type=int)
+                        help='Max number of matches before',
+                        action="store", type=int)
     parser.add_argument('--timeout', '-t',
-        help='Specify the length of time the search should run fro before exiting',
-        action="store", type=int)
+                        help='Specify the length of time the search should run for before exiting',
+                        action="store", type=int)
+    parser.add_argument('--listdirs', '-ld',
+                        help='Specify the length of time the search should run for before exiting',
+                        nargs="+", action="store", type=str)
+    parser.add_argument('--pathfile', '-pf',
+                        help='file containing paths to files to search', action='store', type=str)
+    parser.add_argument('--types', '-ty',
+                        help='Specify the type of files to grep through when search a given directory e.g --cpp matches .cpp, .cc, .C, .cxx, .m, .hpp, .hh, .h, .h++, .H, .hxx, .tpp, .c++', action='store', type=str)
+    parser.add_argument('--endings', '-e',
+                        help='Specify the ending to search for as list of strs e.g -e ".c" ".h" ', nargs='+', action='store', type=str)
 
     x = parser.parse_args()
     query_arg = x.query
     nprocs = x.nprocs
     max_matches = x.max_matches
     time_limit = x.timeout
+    listdirs = x.listdirs
+    pathfile = x.pathfile
+    endings = x.endings
+    types = x.types
 
-    print("q: {}, np: {}, mm: {}, t: {}".format(
-        query_arg, nprocs, max_matches, time_limit))
+    # DEBUG
+    print("q: {}, np: {}, mm: {}, t: {}, listdirs: {}, pathfile: {} , endings: {}, types: {}".format(
+        query_arg, nprocs, max_matches, time_limit, listdirs, pathfile, endings, types))
 
+    # default arg set for nprocs
     nprocs = 4 if nprocs is None else nprocs
 
     if time_limit is not None and max_matches is not None:
@@ -213,8 +278,9 @@ def main():
     # mgsearch_parallel(nprocs=4, query=query_arg,
     #                   time_limit=float(t_lim), max_matches=int(mm))
 
-    mgsearch_parallel(nprocs=nprocs, query=query_arg,
-                      time_limit=time_limit, max_matches=max_matches)
+    mgsearch_parallel(nprocs=nprocs, query=query_arg, time_limit=time_limit,
+                      max_matches=max_matches, listdirs=listdirs, pathfile=pathfile, endings=endings, filetypes=types)
+
     # =====================================
     # mgsearch(query=query_arg)
     # =====================================

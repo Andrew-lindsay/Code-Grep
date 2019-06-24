@@ -283,16 +283,20 @@
 	 - Need to parallelise it, to check each file in parallel 8 processes ? 
 	   + how to handle cutting up of files to search: have list of files, search independently through repos
 	 - Features (1)
-	   + Better way of locating files of interest than from a file of names
 	   + Stop search after a set time (done)
-	   + Stop search after a certain number of matches ()
+	   + Stop search after a certain number of matches (done)
+	   + Better way of locating files of interest than from file of names (done)
 	   + Limit Number of matches in a file ()
 	   + Pagenation of results
-	   + return line numbers ? (not doable with re2 python module :()
+		 + search already launch with pattern with either max_matches set or timelimit set do you want to get next set of results ? 
+		 + start search at file after last one processed  (needs some storage measure or order to files searched to be able to return to a specific location in a search)
+		 + json file of searched for patterns and where to in the search they got
 	   + Be able to limit search of repositories by some metrics: size, # of stars, language: c|c++, certain file endings
-		 * select repos to search based on tags ? 
-  7) Format of results
-  6) tools for building regex expressions
+		 * select repos to search based on tags ?
+		 * have to build a database of info based on repos
+	   + return line numbers ? (not doable with re2 python module :()
+  6) Format of results
+  7) tools for building regex expressions
   8) C preprocessor marco for regex (2)
   9) Some form of filtering of repositories before hand (info in a database stars)
   10) how to create some form of limitation of search or pick off from where you started (list of file names know where to start off)
