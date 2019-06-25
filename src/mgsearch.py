@@ -181,7 +181,7 @@ class MgQuery(object):
 
         self._join_procs()
 
-        self._build_output_file()
+        self._build_output_file()   
 
         print("=== Number of hits: {} ===".format(sum(self.results)))
 # ================================================================================

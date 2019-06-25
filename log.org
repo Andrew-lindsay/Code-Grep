@@ -35,6 +35,15 @@ Work log
    - Wrote python code to stop search after a set number of matches
    - Implemented passing of args on commandline with flags, by using argsparse module
 ** Friday
+   - Had meeting with bjorn at end of day 
+   - wrote method for searching directory structure for files to grep
+   - wrote method to filter out files based on ending type e.i cpp
+* Week 4 
+** Monday
+   - Rewrote/worked entire code base 
+   - Fixed argument passing in code
+   - research data bases mysql vs sqlite3
+   - learn sqlite3 api for python
+** Tuesday
    - 
    - 
-

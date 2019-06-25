@@ -97,6 +97,7 @@ def build_config_file(directory="repos", repo_file="repo_list.txt"):
         json.dump(config, fp=config_json, indent=4)
     print("==== Config File: index.json created ====")
 
+
 def main():
     pool_git_clone(num_of_proc=8)
     # parallel_git_clone(num_cores=4)
