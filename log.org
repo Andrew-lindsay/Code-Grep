@@ -45,5 +45,9 @@ Work log
    - research data bases mysql vs sqlite3
    - learn sqlite3 api for python
 ** Tuesday
+   - Had meeting with bjorn
+   - Programmered automated database creations using quering of github api
+   - created command line interface to tool
+** Wednesday
    - 
    - 

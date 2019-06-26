@@ -115,7 +115,7 @@ class MgQuery(object):
 
         elif self.max_matches is not None:
             # not all items will be comsumed if max_matches set
-            while sum(self.results) < max_matches:
+            while sum(self.results) < self.max_matches:
                 # print(sum(results))
                 try:
                     self.file_queue.put(next(iters))
@@ -181,7 +181,7 @@ class MgQuery(object):
 
         self._join_procs()
 
-        self._build_output_file()   
+        self._build_output_file()
 
         print("=== Number of hits: {} ===".format(sum(self.results)))
 # ================================================================================

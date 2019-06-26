@@ -316,11 +316,12 @@
 	  
 * Programme:  
   - Get repo data from Github
-  - build data base (ensure repositories are unique)
-  - use repository data to clone all github repos locally
+  - build data base (ensure repositories are unique) (done)
+	- parameters to build repository limit language
+  - use repository data to clone all github repos locally (   )
 	- need to work in parallel to pull repositories
 	- query data base to get list
-  - Interface to database to filter repos that get searched
+  - Interface to database to filter repos that get searched (   )
 	- search for repos based on stars, language etc
 	- get results back in from of a list 
 
@@ -341,4 +342,7 @@
    - How to build database have to edit repo puller ? 
 ** Json nosql approach
    - 
+   -
    - 
+
+* Generic Make investigation 
