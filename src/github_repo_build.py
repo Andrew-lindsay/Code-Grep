@@ -1,41 +1,16 @@
 #!/usr/bin/python2
 
 from github import Github
-from github import GithubException
-from github.GithubException import RateLimitExceededException
-from time import sleep, time
+from time import sleep
 import math
-import sqlite3
-from sqlite3 import Error
+import sys
 import argparse
-
-class RepoDatabase():
-    """docstring for RepoDatabase"""
-
-    def __init__(self, db_name):
-        tb_create = """ CREATE TABLE IF NOT EXISTS repositories (
-                        name nvarchar PRIMARY KEY,
-                        stars int,
-                        size int,
-                        language text
-                    );"""
-
-        self.conn = sqlite3.connect(db_name)
-        self.curs = self.conn.cursor()
-        self.curs.execute(tb_create)
-        self.repo_insert = ''' INSERT OR IGNORE INTO repositories (name, stars, size, language)
-                            VALUES (?,?,?,?)'''
-
-    def insert_repo(self, repo_tuple):
-        self.curs.execute(self.repo_insert, repo_tuple)
-        self.conn.commit()
-
-    def insert_many_repos(self, repo_generator):
-        self.curs.executemany(self.repo_insert, repo_generator)
-        self.conn.commit()
+from repositorydb import RepoDatabase
+from repository_cloner import RepoCloner
 
 
 def fetch_all_query_results(query_str):
+    """ """
     # Auth token github obj
     g = Github("87fbbf6e4d5bbb3cec34970f06c85b097d1cb68f", per_page=100)
     print("Items per Page: {}".format(g.per_page))
@@ -71,10 +46,11 @@ def fetch_all_query_results(query_str):
 
         # for repo_obj in res.get_page(i):
         #     yield (repo_obj.full_name, repo_obj.stargazers_count, repo_obj.size, repo_obj.language)
-        res_page = map(lambda repo_obj: (repo_obj.full_name, repo_obj.stargazers_count,
-                                         repo_obj.size, repo_obj.language), res.get_page(i))
 
-        results.extend(res_page)
+        # res_page = map(lambda repo_obj: (repo_obj.full_name, repo_obj.stargazers_count,
+        #                                  repo_obj.size, repo_obj.language), res.get_page(i))
+
+        results.extend(res.get_page(i))
         i += 1
 
     print("Number of requests left: {}/{}"
@@ -83,15 +59,7 @@ def fetch_all_query_results(query_str):
     return results
 
 
-def star_trawler(query, number_of_stars, start=0):
-    for stars in range(start, start + number_of_stars):
-        yield fetch_all_query_results(query_str="language:C++ stars:{}".format(stars))
-
-
-def build_database(database, languages, star_list=100, star_range=None):
-    # create database if it does not already exist
-    repo_db = RepoDatabase(database)
-
+def submit_query(languages, star_list=[100], star_range=None):
     if star_range is not None:
         star_list = xrange(star_range[0], star_range[0] + star_range[1])
 
@@ -99,32 +67,88 @@ def build_database(database, languages, star_list=100, star_range=None):
     if languages is not None:
         lang_flag = ' '.join(map(lambda x: "language:" + x, languages))
 
-    print(lang_flag)
-
-    # get repo object
-
+    # print(lang_flag)
     for star in star_list:
-        # could be done with a generator if it would help
-        # writes batches of 1000 results to database
-        results = fetch_all_query_results(query_str="{} stars:{}".format(lang_flag, star))
-        repo_db.insert_many_repos(results)
+        yield fetch_all_query_results(query_str="{} stars:{}".format(lang_flag, star))
+
+
+def build_database(database, languages, star_list=[100], star_range=None, clone_repos=False):
+    # create database if it does not already exist
+    repo_db = RepoDatabase(database)
+
+    for result in submit_query(languages, star_list, star_range):
+        result_processed = map(lambda repo_obj: (repo_obj.full_name, repo_obj.stargazers_count,
+                                                 repo_obj.size, repo_obj.language), result)
+        repo_db.insert_many_repos(result_processed)
+
+    if clone_repos == True:
+        repo_cloner = RepoCloner(directory="repos")
+        repo_cloner.clone_repositories(db=repo_db)
+
+    repo_db.close_db()
+
+
+def build_file(file_name, languages, star_list=[100], star_range=None, clone_repos=False):
+    """ Creates file to store output of a
+        Github search query over reposistories """
+
+    results = []
+    for result in submit_query(languages, star_list, star_range):
+        results_processed = map(lambda repo_obj: repo_obj.full_name, result)
+        results.extend(results_processed)
+
+    unique_res = set(results)
+    with open(file_name, 'w') as repo_name_file:
+        for repo_name in unique_res:
+            repo_name_file.write(repo_name + '\n')
+
+    if clone_repos == True:
+        repo_cloner = RepoCloner(directory="repos")
+        repo_cloner.clone_repositories(fd=file_name)
+
+
+def print_query_result(languages, star_list, star_range):
+    """ """
+    results = []
+    for result in submit_query(languages, star_list, star_range):
+        results_processed = map(lambda repo_obj: repo_obj.full_name, result)
+        results.extend(results_processed)
+
+    unique_res = set(results)
+
+    for repo_name in unique_res:
+        sys.stdout.write(repo_name + '\n')
+
 
 def get_args():
     args = argparse.ArgumentParser(prog="Github-Repo-puller",)
     args.add_argument('--languages', '-l', help='',
                       action='store', nargs='+', type=str, required=True)
-    args.add_argument('--star_list', '-sl', help='', action='store', type=int, nargs='+', default=[100])
+    args.add_argument('--star_list', '-sl', help='',
+                      action='store', type=int, nargs='+', default=[100])
     args.add_argument('--star_range', '-sr', help='',
                       action='store', type=int)
-    args.add_argument('--db_name', '-db', help='', action='store', type=str, required=True)
+    args.add_argument('--db_name', '-db', help='',
+                      action='store', type=str)
+    args.add_argument('--file', '-f', help='',
+                      action='store', type=str)
+    args.add_argument('--clone_repos', '-cl', help='',
+                      action='store_true', default=False)
     x = args.parse_args()
-    return (x.languages, x.star_list, x.star_range, x.db_name)
+    return (x.languages, x.star_list, x.star_range, x.db_name, x.file, x.clone_repos)
 
 
 def main():
-    (languages, star_list, star_range, db_name) = get_args()
+    (languages, star_list, star_range, db_name, file_name, clone_repos) = get_args()
+
     print((languages, star_list, star_range, db_name))
-    build_database(db_name, languages, star_list, star_range)
+
+    if db_name is not None:
+        build_database(db_name, languages, star_list, star_range, clone_repos)
+    elif file_name is not None:
+        build_file(file_name, languages, star_list, star_range, clone_repos)
+    else:
+        print_query_result(languages, star_list, star_range)
 
 
 if __name__ == '__main__':

@@ -2,15 +2,15 @@
 
 from github import Github
 import os
-from multiprocessing import Process, Pool
+from multiprocessing import Process, Pool, Manager
 import subprocess
 import json
-
+import argparse
+from repositorydb import RepoDatabase
 # utilise codesearch backend ? to make index
 # ratelimiting so have to wait when they happen
 
-
-def github_pull(token="", depth=1, dir="repos", repo_name=""):
+def github_clone(token="", depth=1, dir="repos", repo_name=""):
     # g = Github(token)
     base_url = "https://github.com/"
     flags = "--depth " + str(depth)
@@ -31,8 +31,9 @@ def github_pull(token="", depth=1, dir="repos", repo_name=""):
     subp.wait()
 
 
-def git_pull_small(name):
-    github_pull(repo_name=name)
+def git_pull_wrapper(name):
+    """ Wrapper around  github_clone """
+    github_clone(repo_name=name)
 
 
 def pool_git_clone(num_of_proc):
@@ -43,7 +44,7 @@ def pool_git_clone(num_of_proc):
     repo_names = repo_list.readlines()
     repo_list.close()
     # print(repo_names)
-    pp.map(git_pull_small, repo_names)
+    pp.map(git_pull_wrapper, repo_names)
     print("===== FINISHED =====")
     build_config_file(directory="repos")
 
@@ -62,7 +63,7 @@ def parallel_git_clone(num_cores):
                 repo = repo_list.readline()
                 if repo == "":  # end of file
                     break
-                proc_list[proc_num] = Process(target=github_pull,
+                proc_list[proc_num] = Process(target=github_clone,
                                               args=("", 1, "repos", repo.strip('\n'),))
                 proc_list[proc_num].start()
                 procs_running += 1
@@ -86,12 +87,14 @@ def repository_entry(name, direc):
 
 
 def build_config_file(directory="repos", repo_file="repo_list.txt"):
-    """ Construction json config file for list of repositories that are to be indexed"""
+    """ Construction json config file for list of repositories
+         that are to be indexed for codesearch tool"""
     config = {"name": "gitub-grep", "repositories": []}
 
     with open(repo_file, "r") as repo_list:
         for repo in repo_list:
-            config["repositories"].append(repository_entry(repo.strip('\n'), directory))
+            config["repositories"].append(
+                repository_entry(repo.strip('\n'), directory))
 
     with open("index.json", "w") as config_json:
         json.dump(config, fp=config_json, indent=4)
@@ -99,9 +102,9 @@ def build_config_file(directory="repos", repo_file="repo_list.txt"):
 
 
 def main():
-    pool_git_clone(num_of_proc=8)
+    # pool_git_clone(num_of_proc=8)
     # parallel_git_clone(num_cores=4)
-    # github_pull(token="", depth=1, dir="repos", repo_name="zj463261929/TextBoxes")
+    # github_clone(token="", depth=1, dir="repos", repo_name="zj463261929/TextBoxes")
 
 
 if __name__ == '__main__':
