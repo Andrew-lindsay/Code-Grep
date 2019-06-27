@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import re2
 import os
 from os.path import join
@@ -9,6 +8,10 @@ from multiprocessing import Process, Pool, Manager, active_children
 import itertools
 import Queue
 import argparse
+import repositorydb
+
+
+
 
 class MgQuery(object):
     """ Modeling a Query over a large set of in a directory structure """
@@ -51,13 +54,25 @@ class MgQuery(object):
             if file_name is None:
                 break
 
-            with open(file_name.strip('\n'), "r") as file_handle:
-                for res_q in query_re.finditer(file_handle.read()):
-                    out_file.write("{}: {}\n".format(
-                        file_name.strip('\n'), res_q.group()))
-                    regex_hits += 1
+            try:
+                try:
+                    with open(file_name.strip('\n'), "r") as file_handle:
+                        for res_q in query_re.finditer(file_handle.read()):
+                            # If string is a unicode object, 
+                            # need to convert it to a unicode-encoded
+                            # string object before writing it to a file :(
+                            out_file.write(u"{}: {}\n".format(
+                                file_name, res_q.group()).encode('utf8'))
+                            regex_hits += 1
+                except UnicodeDecodeError:
+                    print(file_name)
 
-            # assuming decrease in search time if needing to push results to shared queue
+            except IOError:
+                # some repos have broken symlinks in them want to avoid them
+                print("ERROR: broken symlinks {}".format(file_name))
+
+            # assuming decrease in search time if needing
+            # to push results to shared queue
             if max_matches is not None:
                 results[id] = regex_hits
 
@@ -86,7 +101,10 @@ class MgQuery(object):
         print("all procs finished")
 
     def _produce_data(self, pathfile=None, dirs_list=None, endings=None, filetypes=None):
-        """ File paths on to shared queue for processes to access """
+        """ File paths added to shared queue for processes to access 
+            If a file with paths to files is provided it is used over secified directory
+            If no file is provided or path to a directory to search, searches for repo 
+            directory in current path """
 
         if pathfile is not None:
             try:
@@ -98,6 +116,7 @@ class MgQuery(object):
         else:
             # default search directory is repos
             dirs_list = dirs_list if dirs_list is not None else ["repos"]
+            print(dirs_list)
             fn = self._search_dirs(
                 dirs_list, endings=endings, filetypes=filetypes)
 
@@ -153,6 +172,7 @@ class MgQuery(object):
                 print("{} is not a directory")
                 continue
             for (dirpath, dirs, filesnames) in os.walk(dir_n):
+                # could get count for repositories from here
                 for file_ in filesnames:
                     if file_.endswith(allowed_file_types):
                         yield join(dirpath, file_)
@@ -222,7 +242,7 @@ def parse_users_args():
                         action="store", type=int)
     parser.add_argument('--directory_list', '-d',
                         help='Specify a list of repositories to search through',
-                        nargs="+", action="store", type=str)
+                        nargs="+", action="store", type=unicode)
     parser.add_argument('--pathfile', '-pf',
                         help='file containing paths to files to search', action='store', type=str)
     parser.add_argument('--filetypes', '-ft',
@@ -230,15 +250,28 @@ def parse_users_args():
     parser.add_argument('--endings', '-e',
                         help='Specify the ending to search for as list of strs e.g -e ".c" ".h" ', nargs='+', action='store', type=str)
 
+    parser.add_argument('--database', '-db',
+                        help='Name of database to use for search narrowing queries', action='store', type=str)
+    parser.add_argument('--stars', '-s',
+                        help='Limit search to repositories within specified limits e.g >10, <5, =9" ', action='store', type=str)
+    parser.add_argument('--language', '-l',
+                        help='Specify language of repositories to search e.g C, C++, prolog', action='store', type=str)
+    parser.add_argument('--size', '-sz',
+                        help='Size of repositories to search', action='store', type=str)
+    parser.add_argument('--root_dir', '-rd',
+                        help='location of the directory containing the collection of repositories', action='store', type=str)
+
     x = parser.parse_args()
-    return (x.query, x.nprocs, x.max_matches, x.timeout, x.directory_list, x.pathfile, x.endings, x.filetypes)
+    return (x.query, x.nprocs, x.max_matches, x.timeout,
+            x.directory_list, x.pathfile, x.endings, x.filetypes,
+            x.database, x.stars, x.language, x.size)
 
 
 def main():
     """ Handles passing of args to function """
 
-    (query_arg, nprocs, max_matches, time_limit, dirs_list,
-     pathfile, endings, filetypes) = parse_users_args()
+    (query_arg, nprocs, max_matches, time_limit, dirs_list, pathfile,
+     endings, filetypes, database, stars, language, size) = parse_users_args()
 
     # DEBUG
     print("q: {}, np: {}, mm: {}, t: {}, listdirs: {}, pathfile: {} , endings: {}, types: {}".format(
@@ -247,11 +280,46 @@ def main():
     if time_limit is not None and max_matches is not None:
         print("Cannot set both max_matches and timeout")
 
-    mgsearch_query = MgQuery(
-        query=query_arg, nprocs=nprocs, timeout=time_limit, max_matches=max_matches)
+    # if database present validate args of stars, language, size
+    if database is not None:
 
-    mgsearch_query.search_files(
-        pathfile=pathfile, dirs_list=dirs_list, endings=endings, filetypes=filetypes)
+        check_query = re2.compile(r"(<|>|=)\d+$")
+
+        if stars is not None:
+            if check_query.match(stars) is None:
+                stars = None
+                print("ERROR: Invalid stars search")
+                return
+
+        if size is not None:
+            if check_query.match(size) is None:
+                size = None
+                print("ERROR: Invalid size search i.e >10 ")
+                return
+
+        if language is not None:
+            if re2.match(r"(\w|+|-)+$", language) is None:
+                print("ERROR: Invalid language search i.e C, CPP, C++")
+                language = None
+
+        repo_db = repositorydb.RepoDatabase(db_name=database)
+        results = repo_db.search_db(stars=stars, size=size, language=language)
+
+        mgsearch_query = MgQuery(
+            query=query_arg, nprocs=nprocs, timeout=time_limit, max_matches=max_matches)
+        
+        # list of repositories from database search are passed as list of directories
+        mgsearch_query.search_files(
+            pathfile=pathfile, dirs_list=results, endings=endings, filetypes=filetypes)
+
+        repo_db.close_db()
+
+    else:
+        mgsearch_query = MgQuery(
+            query=query_arg, nprocs=nprocs, timeout=time_limit, max_matches=max_matches)
+
+        mgsearch_query.search_files(
+            pathfile=pathfile, dirs_list=dirs_list, endings=endings, filetypes=filetypes)
 
 
 if __name__ == '__main__':

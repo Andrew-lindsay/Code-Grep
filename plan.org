@@ -95,7 +95,9 @@
    + supported version control systems Git, Mercurial, SVN, Bazaar can be specified per repo in json file
  - [[https://github.com/ggreer/the_silver_searcher][silver searcher]] - simliar to to ack and grep (supposedly faster)
    + ag --multiline
- - [[https://www.pcre.org/original/doc/html/pcregrep.html][pcre]] - multiline grep like tool 
+ - [[https://www.pcre.org/original/doc/html/pcregrep.html][pcre]] - multiline grep like tool
+ - ripgrep - line oriented search tool
+   + very fast but no multiline grep
 
 * Notes from trying stuff
  - using list as name of file leads to lot of cs student related learning reposistories
@@ -346,3 +348,4 @@
    - 
 
 * Generic Make investigation 
+** 
