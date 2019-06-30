@@ -49,5 +49,15 @@ Work log
    - Programmered automated database creations using quering of github api
    - created command line interface to tool
 ** Wednesday
-   - 
-   - 
+   - Rewrote repository cloner to work directly from database entry or file
+   - repository clone has commandline interface
+   - add functionality in database builder to start pulling repo are finishing build databasr
+   - seperated out repository database class to be used in different scritpt
+** Thurday
+   - fixed bug with unicode names
+   - fixed bug with broken symlinks
+   - added database search functionality to mgsearch tool (commandline args)
+   - create search func to return names from databse in repositorydb class
+   - start testing generic makefiles on repositories
+** Friday
+	 

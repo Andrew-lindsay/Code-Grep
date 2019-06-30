@@ -24,7 +24,7 @@
  - index files for repos are 5-6x larger than the repos :(
  - does livegrep have someway of paging results endlessly ? (max_matches exists but is that the best way)
    + limit number of repos searched then combine results of json (require fixed match) 
- - Clang filtering of reposistories ? reduce the number of required repos to search across
+ - Clang filtering of repositories ? reduce the number of required repos to search across
  - Could build DB of every repo on github just having some information on it link to reposistory language information (seems possible)
  - Could build index of code on the fly from filtered list of repositories that are passed to code search tool (Repositories actual code could be stored locally if needed)
  - What are some local tools that are like grep for large set of files ? ([[https://github.com/google/codesearch][google code search tool]], [[https://beyondgrep.com/][ack - grep opt for programmers]], git grep, )
@@ -63,7 +63,7 @@
  - how does using memory mapped files improve performance
  - 
 
-
+   
 * Links 
  - [[https://developer.github.com/v3/search/][GitHub Search api]]
    + The GitHub Search API provides up to 1,000 results for each search.
@@ -99,6 +99,7 @@
  - ripgrep - line oriented search tool
    + very fast but no multiline grep
 
+	 
 * Notes from trying stuff
  - using list as name of file leads to lot of cs student related learning reposistories
  - Backend and frontend deployed on server and but frontend can't communicate with backfront
@@ -149,7 +150,7 @@
 	 - would require some kind of paging system
 	 
 
-
+ 
 * Tasks
  1. Check the extent of github search functionality (write python code to get results and pull porjects)
 	- how many keywords allowed to narrow search	
@@ -316,16 +317,17 @@
   14) combine github script to create a single github repository retriver, cloner, and database builder for the tool
 	 
 	  
-* Programme:  
+* Programme:
   - Get repo data from Github
   - build data base (ensure repositories are unique) (done)
 	- parameters to build repository limit language
-  - use repository data to clone all github repos locally (   )
+  - use repository data to clone all github repos locally (done)
 	- need to work in parallel to pull repositories
 	- query data base to get list
-  - Interface to database to filter repos that get searched (   )
+  - Interface to database to filter repos that get searched (done)
 	- search for repos based on stars, language etc
 	- get results back in from of a list 
+
 
 * Repository filtering
 ** Information to store
@@ -347,5 +349,38 @@
    -
    - 
 
+
 * Generic Make investigation 
-** 
+** Software found
+   - [[https://en.wikipedia.org/wiki/Automake][automake]]
+   - cmake
+   - gcc compiler dependency generators
+** Notes  
+   - some repos don't even have makefiles present
+   - Can other build system automate make process easier
+   - what about makefiles with multiple targets
+   - externals dependicies dynamically linked libraries
+   - majority language might not indicate project is to be made in that language
+	 - found what seems to be an objective c project classed as c due to use of .h files i think
+   - Ignore install make rules ?
+   - have to identitfy linked libraries used in project and add them
+   - Take generic makefile and project as arguments to a script that produces a more specific makefile for that project
+   - Problem dealing with projects with multiple makefiles one for macos one for linux can a simple generic one actually work
+   - what about platorm specific projects not ment to be built on unix systems
+   - Hard coded src directory effective ? (would avoid problems with tests defining main, could blacklist test directory ?)
+   - what about tools like autoconfig
+** Things learned from trying stuff
+   - how to even test if system has been built properly
+	 - no make errors ? (scan makefile output)
+   - mutilple definitions of main due to testing code also being built
+   - multiple tools all with own make file in repository
+** Things i need to know
+   - How functional do the makefiles have to be: do they have to build te library/executable completely
+** THINGS TODO
+   - test generic makefiles on c and c++ repos to see if they work (2 hours) (db has 47 as test set)
+   - find variations of generic makefiles
+	 - [[https://github.com/Cheedoong/MakefileTemplate/blob/master/Makefile][cheedoong]] makefile
+	 - Vranish makefile: [[https://spin.atomicobject.com/2016/08/26/makefile-c-projects/][A Super-Simple Makefile for Medium-Sized C/C++ Projects]] 
+	 - 
+   - testing/build of repositories
+
