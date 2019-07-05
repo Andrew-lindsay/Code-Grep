@@ -353,6 +353,7 @@
 * Generic Make investigation 
 ** Software found
    - [[https://en.wikipedia.org/wiki/Automake][automake]]
+   - autoconf tools (automake part of it)
    - cmake
    - gcc compiler dependency generators
 ** Notes  
@@ -369,18 +370,25 @@
    - what about platorm specific projects not ment to be built on unix systems
    - Hard coded src directory effective ? (would avoid problems with tests defining main, could blacklist test directory ?)
    - what about tools like autoconfig
+   - try to only select many src directory may yield better results
+   - How to deal with windows specific files 
 ** Things learned from trying stuff
    - how to even test if system has been built properly
 	 - no make errors ? (scan makefile output)
    - mutilple definitions of main due to testing code also being built
    - multiple tools all with own make file in repository
+   - Makefile which has a rule which calls a make file in another directory
+
 ** Things i need to know
    - How functional do the makefiles have to be: do they have to build te library/executable completely
 ** THINGS TODO
-   - test generic makefiles on c and c++ repos to see if they work (2 hours) (db has 47 as test set)
-   - find variations of generic makefiles
+   - test generic makefiles on c and c++ repos to see if they work (2 hours) (db has 47 as test set) (done)
+   - find variations of generic makefiles (done)
 	 - [[https://github.com/Cheedoong/MakefileTemplate/blob/master/Makefile][cheedoong]] makefile
 	 - Vranish makefile: [[https://spin.atomicobject.com/2016/08/26/makefile-c-projects/][A Super-Simple Makefile for Medium-Sized C/C++ Projects]] 
-	 - 
-   - testing/build of repositories
-
+   - testing/build of repositories (done)
+   - improve makefile successful compile rate
+	 - aim to get simplest cases to compile
+	 - may have to write own makefile
+   - try on large set of 3000 repos
+	 - record rate (improve further)

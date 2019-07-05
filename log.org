@@ -60,4 +60,26 @@ Work log
    - create search func to return names from databse in repositorydb class
    - start testing generic makefiles on repositories
 ** Friday
-	 
+   - Worked On testing generic makefiles on set of github repositories (47)
+   - Identified other generic makefiles that could work for processing many repositories
+   - Look into other build system that could be used cmake, automake, autogenconfig
+* Week 5 
+** Monday
+   - Tested many other repositorys (20)
+   - Investigated more build systems
+   - lunch with bjorn
+** Tuesday
+   - Wrote script to apply make to all repositories in a directory
+   - test on local set of repos
+   - investigated problem with make process
+** Wednesday
+   - Learned more about make 
+   - Wrote own generic make for c to better test repositories
+   - Tested more local repositories for reasons of failure on trying make
+	 - librarys not included,
+	 - includes preprocessor directive failed
+	 - double main due to tests or multiple projects in a single repo 
+** Thursday
+   - 
+   - 
+** Friday

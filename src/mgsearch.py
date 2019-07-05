@@ -68,7 +68,7 @@ class MgQuery(object):
                     print(file_name)
 
             except IOError:
-                # some repos have broken symlinks in them want to avoid them
+                # some repos have broken symlinks in them, want to avoid them
                 print("ERROR: broken symlinks {}".format(file_name))
 
             # assuming decrease in search time if needing
@@ -307,7 +307,7 @@ def main():
 
         mgsearch_query = MgQuery(
             query=query_arg, nprocs=nprocs, timeout=time_limit, max_matches=max_matches)
-        
+
         # list of repositories from database search are passed as list of directories
         mgsearch_query.search_files(
             pathfile=pathfile, dirs_list=results, endings=endings, filetypes=filetypes)

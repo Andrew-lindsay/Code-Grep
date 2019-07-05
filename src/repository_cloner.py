@@ -86,11 +86,11 @@ class RepoCloner():
 
 def get_args():
     args = argparse.ArgumentParser()
-    args.add_argument('--file', '-f', help='', action='store', type=str)
-    args.add_argument('--database', '-db', help='', action='store', type=str)
-    args.add_argument('--directory', '-d', help='',
+    args.add_argument('--file', '-f', help='Get the list of repositories to clone from file (each repository name has to be on a seperate line)', action='store', type=str)
+    args.add_argument('--database', '-db', help='Get List of repository to clone from the database', action='store', type=str)
+    args.add_argument('--directory', '-d', help='Specify the directory to safe the cloned repositories into (defualt directory "repos/")',
                       action='store', type=str, default="repos")
-    args.add_argument('--nprocs', '-np', help='', action='store', type=int)
+    args.add_argument('--nprocs', '-np', help='Number of proceses to spawn to clone repositories in parallel', action='store', type=int)
     x = args.parse_args()
     return (x.file, x.database, x.directory, x.nprocs)
 

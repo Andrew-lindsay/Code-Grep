@@ -74,7 +74,7 @@ def submit_query(languages, star_list=[100], star_range=None):
 
 def build_database(database, languages, star_list=[100], star_range=None, clone_repos=False):
     # create database if it does not already exist
-    repo_db = RepoDatabase(database)
+    repo_db = RepoDatabase(database, create_db=True)
 
     for result in submit_query(languages, star_list, star_range):
         result_processed = map(lambda repo_obj: (repo_obj.full_name, repo_obj.stargazers_count,
@@ -121,18 +121,18 @@ def print_query_result(languages, star_list, star_range):
 
 
 def get_args():
-    args = argparse.ArgumentParser(prog="Github-Repo-puller",)
-    args.add_argument('--languages', '-l', help='',
+    args = argparse.ArgumentParser(prog="Github-Repo-Builder",)
+    args.add_argument('--languages', '-l', help='List of lanauges to be issues in search of github reposistories',
                       action='store', nargs='+', type=str, required=True)
-    args.add_argument('--star_list', '-sl', help='',
+    args.add_argument('--star_list', '-sl', help='List of star values to used to query github database (each star values results in 1000 returned results)',
                       action='store', type=int, nargs='+', default=[100])
-    args.add_argument('--star_range', '-sr', help='',
+    args.add_argument('--star_range', '-sr', help='Create a list of star values from a range',
                       action='store', type=int)
-    args.add_argument('--db_name', '-db', help='',
+    args.add_argument('--db_name', '-db', help='The Name of the database to store all the metadata relating to the reposistories returned from a query',
                       action='store', type=str)
-    args.add_argument('--file', '-f', help='',
+    args.add_argument('--file', '-f', help='A of the file to output the list of reposistory names to if database name not present',
                       action='store', type=str)
-    args.add_argument('--clone_repos', '-cl', help='',
+    args.add_argument('--clone_repos', '-cl', help='Specify to download the reposistories from the query either stored in a file or database (no effect if neither are specified)',
                       action='store_true', default=False)
     x = args.parse_args()
     return (x.languages, x.star_list, x.star_range, x.db_name, x.file, x.clone_repos)
