@@ -5,6 +5,7 @@
  - Pull repositories for examples 
  - Utilise regular expressions to find exact examples of data structure of interest being defined (linked list)
  
+
 * Thoughts
  - 1000 results return for each unique query (may return diff results if diff sorting parameter used, indexed or best match )
  - What form do they take ?
@@ -392,3 +393,9 @@
 	 - may have to write own makefile
    - try on large set of 3000 repos
 	 - record rate (improve further)
+
+   - New way of moving forward
+	 - Aim to just compile files to object ".o" by hooking in clang tool before compilation (make it modular ?)
+	 - Report passes or fails in csv output what stage reached type of success
+	   - 3 types of outcome Not successful, tool fell over, found pattern / actually transformed
+	 - Output of tool 

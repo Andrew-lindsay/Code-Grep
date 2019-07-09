@@ -11,8 +11,6 @@ import argparse
 import repositorydb
 
 
-
-
 class MgQuery(object):
     """ Modeling a Query over a large set of in a directory structure """
 
@@ -41,7 +39,7 @@ class MgQuery(object):
                 try:
                     tim_l = time_limit - (time.time() - start_time)
                     file_name = file_names.get(timeout=tim_l)
-                except Queue.Empty as e:
+                except (ValueError, Queue.Empty) as e:
                     file_name = None
                     print("Time Waiting on get exceed limit exit: {}".format(e))
             else:
@@ -55,21 +53,29 @@ class MgQuery(object):
                 break
 
             try:
-                try:
-                    with open(file_name.strip('\n'), "r") as file_handle:
-                        for res_q in query_re.finditer(file_handle.read()):
-                            # If string is a unicode object, 
-                            # need to convert it to a unicode-encoded
-                            # string object before writing it to a file :(
-                            out_file.write(u"{}: {}\n".format(
-                                file_name, res_q.group()).encode('utf8'))
-                            regex_hits += 1
-                except UnicodeDecodeError:
-                    print(file_name)
+                with open(file_name.strip('\n'), "r") as file_handle:
+                    for res_q in query_re.finditer(file_handle.read()):
+                        # If string is a unicode object,
+                        # need to convert it to a unicode-encoded
+                        # string object before writing it to a file :(
 
+                        # need way of getting name of repo (enforce use of directory being given where repos are )
+
+                        # format of data to output 
+                        # [{ repo_name : number of hits,
+                        #   list_of_files : ["file1.c", "file2.c" ]
+                        # }, 
+                        #  ... ]
+                        out_file.write(u"{}: {}\n".format(
+                            file_name, res_q.group()).encode('utf8'))
+                        regex_hits += 1
+
+            except UnicodeDecodeError:
+                sys.stderr.write(u"UnicodeDecodeError: " + file_name + u"\n")
             except IOError:
                 # some repos have broken symlinks in them, want to avoid them
-                print("ERROR: broken symlinks {}".format(file_name))
+                sys.stderr.write(
+                    "ERROR: broken symlinks {}\n".format(file_name))
 
             # assuming decrease in search time if needing
             # to push results to shared queue
@@ -283,24 +289,25 @@ def main():
     # if database present validate args of stars, language, size
     if database is not None:
 
-        check_query = re2.compile(r"(<|>|=)\d+$")
+        check_query = re2.compile(r"^(<|>|=)\d+$")
 
         if stars is not None:
             if check_query.match(stars) is None:
                 stars = None
-                print("ERROR: Invalid stars search")
+                sys.stderr.write("ERROR: Invalid stars search\n")
                 return
 
         if size is not None:
             if check_query.match(size) is None:
                 size = None
-                print("ERROR: Invalid size search i.e >10 ")
+                sys.stderr.write("ERROR: Invalid size search i.e >10\n")
                 return
 
         if language is not None:
             if re2.match(r"(\w|+|-)+$", language) is None:
-                print("ERROR: Invalid language search i.e C, CPP, C++")
+                sys.stderr.write("ERROR: Invalid language search i.e C, CPP, C++\n")
                 language = None
+                return
 
         repo_db = repositorydb.RepoDatabase(db_name=database)
         results = repo_db.search_db(stars=stars, size=size, language=language)

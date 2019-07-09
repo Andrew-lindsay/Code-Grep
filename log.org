@@ -63,7 +63,7 @@ Work log
    - Worked On testing generic makefiles on set of github repositories (47)
    - Identified other generic makefiles that could work for processing many repositories
    - Look into other build system that could be used cmake, automake, autogenconfig
-* Week 5 
+* Week 5
 ** Monday
    - Tested many other repositorys (20)
    - Investigated more build systems
@@ -80,6 +80,17 @@ Work log
 	 - includes preprocessor directive failed
 	 - double main due to tests or multiple projects in a single repo 
 ** Thursday
+   - Cmake setup and testing (does not work well either)
    - 
+   - Emailed bjorn he is away on a workshop 
+** Friday
+   - fixed bug in mgsearch for timeout of process
+   - tested on large set of repositorues 1000 downloaded thursday night
+* Week 6
+** Monday
+   - Implemented basic script for running transformation on successful hits of pattern
    - 
+** Tuesday
+** Wednesday
+** Thursday
 ** Friday
