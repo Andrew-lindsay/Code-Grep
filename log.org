@@ -89,8 +89,12 @@ Work log
 * Week 6
 ** Monday
    - Implemented basic script for running transformation on successful hits of pattern
-   - 
+   -  
 ** Tuesday
+   - alter mgsearch to handle 
 ** Wednesday
+   - Finish editing mgsearch to produce data to be used by transformation tool
+   - Complete tranformation code; take desired transformation (i.e clang) and write script to apply it to files in repo (store output .c or cpp in build directory)
+   - Complete building of object file using a compiler (store in directory in repo)
 ** Thursday
 ** Friday

@@ -51,7 +51,7 @@ class RepoDatabase():
         # for x in results:
         #     yield x[0]
 
-    def search_db(self, stars=None, size=None, language=None):
+    def search_db(self, repo_dir="", stars=None, size=None, language=None):
         """ Returns a list of repositories """
         search_clauses = []
 
@@ -82,7 +82,7 @@ class RepoDatabase():
             if res == []:
                 break
             for item in res:
-                yield item[0]
+                yield join(repo_dir, item[0])
 
         # for res in results:
         #     yield res[0]
