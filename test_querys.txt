@@ -2,6 +2,8 @@
   - Definition of a list
   - For loops of a certain form
   - Vector having items added to it one after another
+  - nested for loops
+  - list of pushes on to a vector
 
 
 1) Iterator pattern
@@ -35,3 +37,6 @@
 6) For loops with iterators
    for\(\s*[\w_][\w0-9_<>(::)]*::iterator\s+([\w_][\w0-9_]*)\s*\=\s*[\d\w.<>]+;\s*\1\s*<\s*[\w_][\w0-9_]*;\s*(\+\+)?\1(\+\+)?\s*\)
    e.g for( map<std::wstring>::iterator  it = 10; it < 10; it++){
+
+7) pushes on to a vector 
+   $\s*((std)| ) 
