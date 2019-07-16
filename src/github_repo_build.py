@@ -72,7 +72,7 @@ def submit_query(languages, star_list=[100], star_range=None):
         yield fetch_all_query_results(query_str="{} stars:{}".format(lang_flag, star))
 
 
-def build_database(database, languages, star_list=[100], star_range=None, clone_repos=False):
+def build_database(database, languages, star_list=[100], star_range=None, clone_repos="repos"):
     # create database if it does not already exist
     repo_db = RepoDatabase(database, create_db=True)
 
@@ -81,14 +81,14 @@ def build_database(database, languages, star_list=[100], star_range=None, clone_
                                                  repo_obj.size, repo_obj.language), result)
         repo_db.insert_many_repos(result_processed)
 
-    if clone_repos == True:
-        repo_cloner = RepoCloner(directory="repos")
+    if clone_repos is not None:
+        repo_cloner = RepoCloner(directory=clone_repos)
         repo_cloner.clone_repositories(db=repo_db)
 
     repo_db.close_db()
 
 
-def build_file(file_name, languages, star_list=[100], star_range=None, clone_repos=False):
+def build_file(file_name, languages, star_list=[100], star_range=None, clone_repos="repos"):
     """ Creates file to store output of a
         Github search query over reposistories """
 
@@ -102,8 +102,8 @@ def build_file(file_name, languages, star_list=[100], star_range=None, clone_rep
         for repo_name in unique_res:
             repo_name_file.write(repo_name + '\n')
 
-    if clone_repos == True:
-        repo_cloner = RepoCloner(directory="repos")
+    if clone_repos is not None:
+        repo_cloner = RepoCloner(directory=clone_repos)
         repo_cloner.clone_repositories(fd=file_name)
 
 
@@ -132,8 +132,8 @@ def get_args():
                       action='store', type=str)
     args.add_argument('--file', '-f', help='A of the file to output the list of reposistory names to if database name not present',
                       action='store', type=str)
-    args.add_argument('--clone_repos', '-cl', help='Specify to download the reposistories from the query either stored in a file or database (no effect if neither are specified)',
-                      action='store_true', default=False)
+    args.add_argument('--clone_repos', '-cl', help='Specify to directory to download the reposistories from the query either stored in a file or database (no effect if neither are specified)',
+                      action='store', default=None)
     x = args.parse_args()
     return (x.languages, x.star_list, x.star_range, x.db_name, x.file, x.clone_repos)
 

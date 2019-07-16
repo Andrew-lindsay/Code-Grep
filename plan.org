@@ -399,3 +399,34 @@
 	 - Report passes or fails in csv output what stage reached type of success
 	   - 3 types of outcome Not successful, tool fell over, found pattern / actually transformed
 	 - Output of tool 
+
+   - Finish editing mgsearch to produce data to be used by transformation tool
+	 + format gives name of repo (for creating directories in), paths of files with pattern present to transform, number of hits to order if wanted 
+   - Complete tranformation code; take desired transformation (i.e clang) and write script to apply it to files in repo (store output .c or cpp in build directory)
+	 + allow tranformation to change clang to rose etc allow to pass arguments
+   - Complete building of object file using a compiler (store in directory in repo)
+
+* Generic Transformation approach
+** Approach
+   - Get repo name and files with regex hits (done)
+   - create build directory (done)
+	 - if already exists recursively delete (done)
+   - Take tranformation provided and apply to specific file in repos list of files with hits (done)
+	 - How to provide the transformation as an argument without specifing input and output (provided by the script)
+	   - place holder that are searched for and replaced to build list of args with appropriate input and output
+	 - Transformation tool can be quite general as an approach 
+	   - transforms include: Rose, clang, philips tool
+  	 - Creates new transformed files
+	 - Place file in build directory at top level ? (don't mirror dir structure)
+   - take output of transformation and build object file from source per repo
+	 - utilise makefile to create object files or direct gcc
+	 - required including all required includes (add all directories as -I args)
+** Tasks TODO
+   - transforming files has all required args
+   - compile selected files
+   - build output data (csv with 3 possible returns: No transformation, No compile, Tool errored)
+	 - How to findout if success is in what category, requires parsing of the input 
+   - commandline frontend
+   - testing output of command is going to be hard also very specific return code could be more general
+   - test at scale
+   - parallelise ? (at the end)

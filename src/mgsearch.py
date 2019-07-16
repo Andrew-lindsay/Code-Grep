@@ -12,6 +12,7 @@ import Queue
 from collections import defaultdict
 import repositorydb
 from pprint import pprint
+import json
 
 
 class MgQuery(object):
@@ -23,17 +24,23 @@ class MgQuery(object):
         self.max_matches = max_matches
         self.timeout = timeout
         self.file_queue = multiprocessing.Queue(nprocs)  # set max size
-        self.results = multiprocessing.Array('i', self.nprocs)  # list of results
-        self.pool = []  # processor prologs
+        self.result_queue_dict = multiprocessing.Queue(nprocs)  # Queue for returning dictionaries
+        self.results = multiprocessing.Array('L', self.nprocs)  # list of results
+        self.pool = []  # list of processor handles
 
+    @staticmethod
     def _join_result_dict(list_of_dict):
+        """ Merges the results of Multiple result dictionaries
+        returned from processes. None is returned if empty
+        list of dictionaries provided """
+
         if not len(list_of_dict) > 1:
-            return
+            return None
 
         merge_dict = list_of_dict[0]
 
         for repo_dict in list_of_dict[1:]:
-            for repo_name, file_list in repo_dict[1:].iteritems():
+            for repo_name, file_list in repo_dict.iteritems():
                 merge_dict[repo_name].extend(file_list)
             del repo_dict
 
@@ -60,7 +67,7 @@ class MgQuery(object):
         return repo_name, file_path_f
 
     @staticmethod
-    def _search_worker(query, file_names, results, id, repo_dir, time_limit=None, max_matches=None):
+    def _search_worker(query, file_names, results, id, repo_dir, result_queue_dict, time_limit=None, max_matches=None):
         """ Code run for each process of parallel search """
         query_re = re2.compile(query, re2.MULTILINE)
         regex_hits = 0
@@ -71,6 +78,7 @@ class MgQuery(object):
         # loop until no more data provided in queue or timelimit or max matches met
         while True:
 
+            # handles timeout 
             if time_limit is not None:
                 try:
                     tim_l = time_limit - (time.time() - start_time)
@@ -116,6 +124,9 @@ class MgQuery(object):
                             file_name, repo_dir)
                         results_info[repo_name].append(file_path)
 
+                    # could add processing code here to apply transformations and build code 
+                    # too much functionality in one place ? 
+
             except UnicodeDecodeError:
                 sys.stderr.write(u"UnicodeDecodeError: " + file_name + u"\n")
             except IOError:
@@ -127,9 +138,13 @@ class MgQuery(object):
             # to push results to shared queue
             if max_matches is not None:
                 results[id] = regex_hits
+
         # clean up
+        result_queue_dict.put(results_info)
+
         out_file.close()
-        pprint(dict(results_info))
+        print("Send dict")
+        # pprint(dict(results_info))
         results[id] = regex_hits
 
     def _start_procs(self, repo_dir):
@@ -137,7 +152,7 @@ class MgQuery(object):
         self.pool = []
         for proc_id in xrange(self.nprocs):
             p = Process(target=self._search_worker, args=(
-                self.query, self.file_queue, self.results, proc_id, repo_dir, self.timeout, self.max_matches))
+                self.query, self.file_queue, self.results, proc_id, repo_dir, self.result_queue_dict, self.timeout, self.max_matches))
             p.start()
             self.pool.append(p)
 
@@ -147,8 +162,21 @@ class MgQuery(object):
 
     def _join_procs(self):
         # wait for child processes
+
+        proc_dict_res = []
+        # collect results dictionary
+        for _ in xrange(self.nprocs):
+            proc_dict_res.append(self.result_queue_dict.get())
+
+        merged_dict_res = MgQuery._join_result_dict(proc_dict_res)
+        with open("results.json", 'w') as json_res:
+            json.dump(merged_dict_res, fp=json_res, indent=4)
+
+        print("Printing merged dictionary results: ")
+        # pprint(dict(merged_dict_res))
+
         for p in self.pool:
-            # if p.is_alive():
+            print("PROCESS IS ALIVE: {}".format(p.is_alive()))
             p.join()
         print("all procs finished")
 
@@ -196,8 +224,9 @@ class MgQuery(object):
 
             # shutdown all process once max_matches reached
             # chance this blocks forever if already processes stopped
-            print("CHILDERN: {}".format(len(active_children()) - 1))
-            for _ in range(len(active_children()) - 1):
+            print("CHILDERN: {}".format(len(active_children())))
+            for _ in range(len(active_children())):
+                print("putting None on queue")
                 self.file_queue.put(None)
 
         else:

@@ -94,6 +94,7 @@ Work log
    - alter mgsearch to handle 
 ** Wednesday
    - Finish editing mgsearch to produce data to be used by transformation tool
+	 - merge data from processes to then pass to transformation tool
    - Complete tranformation code; take desired transformation (i.e clang) and write script to apply it to files in repo (store output .c or cpp in build directory)
    - Complete building of object file using a compiler (store in directory in repo)
 ** Thursday
