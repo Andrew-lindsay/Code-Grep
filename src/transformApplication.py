@@ -5,16 +5,7 @@ from os.path import join, basename
 import os
 import json
 from shutil import copyfile, copy2, rmtree
-
-
-def compile_transformed_files(repo_loc, make_file_loc):
-    nul = open(os.devnull, 'w')
-
-    p = Popen(["make", "-f", make_file_loc, "-C",
-               repo_loc], stdout=None, stderr=None)
-    p.wait()
-
-    nul.close()
+import re2
 
 
 def get_includes(repo_loc):
@@ -50,16 +41,30 @@ def compile_transformed(repo_loc, include_list, input_f, output_f):
     nul.close()
 
 
-def apply_transformation(transform_tool, input_f, output_f):
+def apply_transformation(transform_tool, regex_hit_pattern, input_f, output_f):
     nul = open(os.devnull, 'w')
     # print("tool: {}\ninput: {}\nouput: {}".format(' '.join(transform_tool), input_f, output_f))
     # print(' '.join(transform_tool))
+    counter = 0
 
-    p = Popen(transform_tool, stdout=nul, stderr=None)
+    p = Popen(transform_tool, stdout=PIPE, stderr=None)
+
+    # get number of hits for tranformation
+    regex_c = re2.compile(regex_hit_pattern)
+
+    for line in p.stdout:
+        # print(line)
+        match_p = regex_c.search(line)
+        if match_p is not None:
+            counter += 1
+
     p.wait()
-    print("Transformation return code: {}".format(p.returncode))
 
+    print("Transformation return code: {}".format(p.returncode))
+    print("Number of successful transformations: {}".format(counter))
     nul.close()
+
+    return counter
 
 
 def get_input_output_loc(transform_tool):
@@ -108,6 +113,9 @@ def transform_files(transform_tool, repo_dir="repos", results_dict={}, copy_req=
     global succ_comps
     succ_comps = 0
     total_number = 0
+    transform_count = 0
+
+    transform_tool_len = len(transform_tool)
 
     # get index placements for args
     input_index, output_index = get_input_output_loc(transform_tool)
@@ -128,6 +136,8 @@ def transform_files(transform_tool, repo_dir="repos", results_dict={}, copy_req=
         include_list = get_includes(repo_loc=repo_loc)
         # print(include_list)
 
+        # remove previous includes for clang { code is lookin pretty bad now :( }
+        transform_tool = transform_tool[:transform_tool_len]
         # add includes to clang command
         transform_tool.extend(include_list)
 
@@ -151,8 +161,8 @@ def transform_files(transform_tool, repo_dir="repos", results_dict={}, copy_req=
             set_in_out_args(transform_tool, input_f=file_path, output_f=out_file,
                             in_index=input_index, out_index=output_index)
 
-            apply_transformation(
-                transform_tool, input_f=file_path, output_f=out_file)
+            transform_count += apply_transformation(
+                transform_tool, r"modernize-loop-convert" , input_f=file_path, output_f=out_file)
             # print("Transformation Complete")
 
             #  here
@@ -161,6 +171,7 @@ def transform_files(transform_tool, repo_dir="repos", results_dict={}, copy_req=
                                 input_f=file_path, output_f=out_file)
 
     print("TOTAL SUCCESSFUL COMPILATIONS: {}/{}".format(succ_comps, total_number))
+    print("TOTAL NUMBER OF TRANSFORMATIONS: {}".format(transform_count))
     # all files done now compile directory
     # compile_transformed_files(repo_loc, make_file_loc="~/Project/Code-Grep/Makefile")
 
@@ -189,7 +200,7 @@ def main():
 
     transform_files(
         transform_tool=[
-            "clang-tidy", "-checks='modernize-loop-convert'", 'input', "--", "-std=c++14"],
+            "clang-tidy", "-checks=-*,modernize-loop-convert", 'input', "--", "-std=c++14"],
         repo_dir=repo_dir, results_dict=results_dict)
 
 
