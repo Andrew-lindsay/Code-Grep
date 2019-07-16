@@ -6,6 +6,7 @@ import os
 import json
 from shutil import copyfile, copy2, rmtree
 import re2
+import csv
 
 
 def get_includes(repo_loc):
@@ -39,6 +40,7 @@ def compile_transformed(repo_loc, include_list, input_f, output_f):
         succ_comps += 1
 
     nul.close()
+    return p.returncode
 
 
 def apply_transformation(transform_tool, regex_hit_pattern, input_f, output_f):
@@ -64,7 +66,7 @@ def apply_transformation(transform_tool, regex_hit_pattern, input_f, output_f):
     print("Number of successful transformations: {}".format(counter))
     nul.close()
 
-    return counter
+    return counter if p.returncode == 0 else -1 
 
 
 def get_input_output_loc(transform_tool):
@@ -120,6 +122,9 @@ def transform_files(transform_tool, repo_dir="repos", results_dict={}, copy_req=
     # get index placements for args
     input_index, output_index = get_input_output_loc(transform_tool)
 
+    csv_results_data = open("transform_results.csv", "w")
+    csv_writer = csv.writer(csv_results_data, delimiter='\t')
+
     # get results
     for repo_name, file_list in results_dict.iteritems():
         repo_loc = join(repo_dir, repo_name)
@@ -161,14 +166,20 @@ def transform_files(transform_tool, repo_dir="repos", results_dict={}, copy_req=
             set_in_out_args(transform_tool, input_f=file_path, output_f=out_file,
                             in_index=input_index, out_index=output_index)
 
-            transform_count += apply_transformation(
-                transform_tool, r"modernize-loop-convert" , input_f=file_path, output_f=out_file)
+            transform_c = apply_transformation(
+                transform_tool, r"modernize-loop-convert", input_f=file_path, output_f=out_file)
             # print("Transformation Complete")
+
+            if transform_c  != -1:
+                transform_count += transform_c
 
             #  here
             # print("Compilation Started")
-            compile_transformed(repo_loc, include_list,
-                                input_f=file_path, output_f=out_file)
+            comp_return_code = compile_transformed(repo_loc, include_list,
+                                                   input_f=file_path, output_f=out_file)
+
+            csv_writer.writerow(
+                [repo_name, file_n, transform_c if transform_c != -1 else "FAILURE", "SUCCESSFUL" if comp_return_code == 0 else "FAILURE"])
 
     print("TOTAL SUCCESSFUL COMPILATIONS: {}/{}".format(succ_comps, total_number))
     print("TOTAL NUMBER OF TRANSFORMATIONS: {}".format(transform_count))
