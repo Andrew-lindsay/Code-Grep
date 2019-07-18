@@ -223,7 +223,7 @@ def parse_args():
     arg_parser.add_argument(
         '--directory', '-d', help="directory containing repositories", default="repos")
     arg_parser.add_argument(
-        '--tool', '-t', help="The command line tool and its arguements to run", type=str, required=True)
+        '--tool', '-t', help="The command line tool and its arguements to run", type=str)
     arg_parser.add_argument(
         '--regex', '-r', help="Regex pattern to detect hits in tools standard output", default="", type=str)
     arg_parser.add_argument(
@@ -235,6 +235,11 @@ def parse_args():
         help="Remove all build directories in repos specified by input file that were created by this tool, use before issuing a second search query over repositories")
 
     parsed = arg_parser.parse_args()
+
+    if parsed.clean is False and parsed.tool is None:
+        arg_parser.error('Error: Either --clean or --tool must be passed')
+        sys.exit(0)
+
     return parsed.directory, parsed.tool, parsed.regex, parsed.input_file, parsed.output_csv, parsed.clean
 
 
