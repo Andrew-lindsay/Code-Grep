@@ -48,7 +48,7 @@ def compile_transformed(repo_loc, include_list, input_f, output_f):
 def apply_transformation(transform_tool, regex_hit_pattern, input_f, output_f):
     nul = open(os.devnull, 'w')
     # print("tool: {}\ninput: {}\nouput: {}".format(' '.join(transform_tool), input_f, output_f))
-    print(' '.join(transform_tool))
+    # print(' '.join(transform_tool))
     counter = 0
 
     p = Popen(transform_tool, stdout=PIPE, stderr=None)
@@ -173,7 +173,7 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
             total_number += 1
 
             print("\n=====Process File======")
-            print(in_file)
+            print(in_file.encode('utf8'))
 
             # clang-tidy -checks='modernize-loop-convert' file.in -- -std=c++11
             if copy_req:
@@ -206,8 +206,8 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
                     before=in_file, after=out_file)
 
             csv_writer.writerow(
-                [repo_name,
-                 file_n,
+                [repo_name.encode('utf8'),
+                 file_n.encode('utf8'),
                  diff_chunk_count,
                  transform_c if transform_c != -1 else "FAILURE",
                  "SUCCESSFUL" if comp_return_code == 0 else "FAILURE"])
