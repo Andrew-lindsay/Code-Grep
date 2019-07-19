@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUTr
 import sys
 from os.path import join, basename
 import os
@@ -140,7 +140,7 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
     # get index placements for args
     input_index, output_index = get_input_output_loc(transform_tool)
 
-    csv_results_data = open("transform_results.csv", "w")
+    csv_results_data = open(output_file, "w")
     csv_writer = csv.writer(csv_results_data, delimiter='\t')
     csv_writer.writerow(
         ["Repo Name", "File Name", "Diff chunks", "Transformed", "Compilation"])
@@ -189,7 +189,7 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
                             in_index=input_index, out_index=output_index)
 
             transform_c = apply_transformation(
-                transform_tool, r"modernize-loop-convert", input_f=file_path, output_f=out_file)
+                transform_tool, regex, input_f=file_path, output_f=out_file)
             # print("Transformation Complete")
 
             if transform_c != -1:
