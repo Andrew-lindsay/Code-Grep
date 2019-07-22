@@ -82,7 +82,7 @@ class RepoDatabase():
             if res == []:
                 break
             for item in res:
-                yield join(repo_dir, item[0])
+                yield join(repo_dir, item[0]).encode('utf8')
 
         # for res in results:
         #     yield res[0]

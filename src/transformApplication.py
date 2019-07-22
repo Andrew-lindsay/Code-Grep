@@ -10,6 +10,7 @@ import csv
 import difflib
 import argparse
 import multiprocessing
+from pprint import pprint
 
 
 def get_includes(repo_loc):
@@ -128,58 +129,6 @@ def num_diff_regions(before, after):
     print("Number of continues changed chunks: {}".format(counter))
     return counter
 
-
-def transform_worker(id, file_queue, transform_count_array, transform_tool, regex):
-
-    while True:
-
-        in_file = join(repo_loc, file_n)
-        out_file = join(build_path, basename(file_n))
-        total_number += 1
-
-        print("\n=====Process File======")
-        print(in_file.encode('utf8'))
-
-        # clang-tidy -checks='modernize-loop-convert' file.in -- -std=c++11
-        if copy_req:
-            copyfile(in_file, out_file)
-            file_path = out_file
-        else:  # clang applies changes in place
-            file_path = in_file
-
-        # what if tool requires -I arguements to work
-        # clang could be used on set of files at once but not all tools could do this
-        # transform_tool = alter_tool_args(transform_tool, file_path, out_file)
-        set_in_out_args(transform_tool, input_f=file_path, output_f=out_file,
-                        in_index=input_index, out_index=output_index)
-
-        transform_c = apply_transformation(
-            transform_tool, regex, input_f=file_path, output_f=out_file)
-        # print("Transformation Complete")
-
-        if transform_c != -1:
-            transform_count += transform_c
-
-        #  here
-        # print("Compilation Started")
-        comp_return_code = compile_transformed(repo_loc, include_list,
-                                               input_f=file_path, output_f=out_file)
-
-        diff_chunk_count = -1
-        if os.path.isfile(out_file):
-            diff_chunk_count = num_diff_regions(
-                before=in_file, after=out_file)
-
-        # parallel writing to a csv will be dangerous use locks ? 
-        csv_writer.writerow(
-            [repo_name.encode('utf8'),
-             file_n.encode('utf8'),
-             diff_chunk_count,
-             transform_c if transform_c != -1 else "FAILURE",
-             "SUCCESSFUL" if comp_return_code == 0 else "FAILURE"])
-
-
-
 def transform_files(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, copy_req=True):
 
     global succ_comps
@@ -199,6 +148,9 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
 
     # get results
     for repo_name, file_list in results_dict.iteritems():
+        repo_name = repo_name.encode('utf8')
+        print(type(repo_name))
+        print(file_list)
         repo_loc = join(repo_dir, repo_name)
 
         # create directory for transformed code
@@ -212,7 +164,7 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
         # overkill having all directories
         include_list = get_includes(repo_loc=repo_loc)
         # print(include_list)
-
+        print("here")
         # remove previous includes for clang { code is lookin pretty bad now :( }
         transform_tool = transform_tool[:transform_tool_len]
         # add includes to clang command
@@ -221,13 +173,14 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
         # parallelise this loop
         # add shared total array 
         for file_n in file_list:
+            file_n = file_n.encode('utf8') 
             # transform file
             in_file = join(repo_loc, file_n)
             out_file = join(build_path, basename(file_n))
             total_number += 1
 
             print("\n=====Process File======")
-            print(in_file.encode('utf8'))
+            print(in_file)
 
             # clang-tidy -checks='modernize-loop-convert' file.in -- -std=c++11
             if copy_req:
@@ -261,8 +214,8 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
 
             # parallel writing to a csv will be dangerous use locks ? 
             csv_writer.writerow(
-                [repo_name.encode('utf8'),
-                 file_n.encode('utf8'),
+                [repo_name,
+                 file_n,
                  diff_chunk_count,
                  transform_c if transform_c != -1 else "FAILURE",
                  "SUCCESSFUL" if comp_return_code == 0 else "FAILURE"])
@@ -311,6 +264,8 @@ def main():
 
     with open(input_file, "r") as query_results:
         results_dict = json.load(query_results)
+
+    # pprint(results_dict)
 
     #  How to know where to place args in command
 

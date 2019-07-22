@@ -115,8 +115,7 @@ class MgQuery(object):
                         # },
                         #  ... ]
 
-                        out_file.write(u"{}: {}\n".format(
-                            file_name, res_q.group()).encode('utf8'))
+                        out_file.write("{}: {}\n".format(file_name, res_q.group()))
 
                         regex_hits += 1
                         hit_in_file = True
@@ -130,7 +129,7 @@ class MgQuery(object):
                     # too much functionality in one place ? 
 
             except UnicodeDecodeError:
-                sys.stderr.write(u"UnicodeDecodeError: " + file_name + u"\n")
+                sys.stderr.write("UnicodeDecodeError: " + file_name + "\n")
             except IOError:
                 # some repos have broken symlinks in them, want to avoid them
                 sys.stderr.write(
@@ -173,7 +172,7 @@ class MgQuery(object):
 
         merged_dict_res = MgQuery._join_result_dict(proc_dict_res)
         with open("results.json", 'w') as json_res:
-            json.dump(merged_dict_res, fp=json_res, indent=4)
+            json.dump(merged_dict_res, fp=json_res, indent=4, ensure_ascii=False)
         # ===================================================
 
         print("Printing merged dictionary results: ")
@@ -331,9 +330,9 @@ def parse_users_args():
     parser.add_argument('--timeout', '-t',
                         help='Specify the length of time the search should run for before exiting',
                         action="store", type=int)
-    parser.add_argument('--directory', '-d',
+    parser.add_argument('--directory', '-d', default="repos",
                         help='Specify the path of directory holding the repositories to search through',
-                        action="store", type=unicode)
+                        action="store")
     parser.add_argument('--pathfile', '-pf',
                         help='file containing paths to files to search', action='store', type=str)
     parser.add_argument('--filetypes', '-ft',
@@ -395,7 +394,7 @@ def main():
                 return
 
         if language is not None:
-            if re2.match(r"(\w|+|-)+$", language) is None:
+            if re2.match(r"(\w|\+|-)+$", language) is None:
                 sys.stderr.write(
                     "ERROR: Invalid language search i.e C, CPP, C++\n")
                 language = None
