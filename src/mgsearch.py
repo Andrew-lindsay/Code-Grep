@@ -370,7 +370,7 @@ def main():
      endings, filetypes, output_matches_f, database, stars, language, size) = parse_users_args()
 
     # DEBUG
-    print("q: {}, np: {}, mm: {}, t: {}, listdirs: {}, pathfile: {} , endings: {}, types: {}".format(
+    print("q: {}, np: {}, mm: {}, t: {}, dir: {}, pathfile: {} , endings: {}, types: {}".format(
         query_arg, nprocs, max_matches, time_limit, dir_repos, pathfile, endings, filetypes))
 
     if time_limit is not None and max_matches is not None:

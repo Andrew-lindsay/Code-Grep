@@ -11,6 +11,7 @@ import difflib
 import argparse
 import multiprocessing
 from pprint import pprint
+import itertools 
 
 
 def get_includes(repo_loc):
@@ -128,6 +129,156 @@ def num_diff_regions(before, after):
 
     print("Number of continues changed chunks: {}".format(counter))
     return counter
+
+
+def transform_worker(file_queue, transform_count_array, proc_id, transform_tool, regex, repo_dir, copy_req=True):
+
+    # setup 
+
+    transform_tool_len = len(transform_tool)
+    # get index placements for args
+    input_index, output_index = get_input_output_loc(transform_tool)
+
+    csv_results_data = open("out_{}.csv".format(proc_id), "w")
+    csv_writer = csv.writer(csv_results_data, delimiter='\t')
+
+    while True:
+
+        repo_name, file_list = file_queue.get()
+
+        if repo_name is None:
+            break
+
+        repo_loc = join(repo_dir, repo_name)
+
+        build_path = join(repo_loc, "build-trans")
+        print(build_path)
+        if os.path.isdir(build_path):
+            # os.rmdir(build_path)
+            rmtree(build_path)
+            print("Build directory already exists")
+        os.mkdir(build_path)
+
+        # overkill having all directories
+        include_list = get_includes(repo_loc=repo_loc)
+        # print(include_list)
+        print("here")
+
+        # remove previous includes for clang { code is lookin pretty bad now :( }
+        transform_tool = transform_tool[:transform_tool_len]
+        # add includes to clang command
+        transform_tool.extend(include_list)
+
+        for file_n in file_list:
+            file_n = file_n.encode('utf8')
+            in_file = join(repo_loc, file_n)
+            out_file = join(build_path, basename(file_n))
+
+            print("\n=====Process File======")
+            print("file:{}, id:{}".format(in_file, proc_id))
+
+            # clang-tidy -checks='modernize-loop-convert' file.in -- -std=c++11
+            if copy_req:
+                copyfile(in_file, out_file)
+                file_path = out_file
+            else:  # clang applies changes in place
+                file_path = in_file
+
+            # what if tool requires -I arguements to work
+            # clang could be used on set of files at once but not all tools could do this
+
+            set_in_out_args(transform_tool, input_f=file_path, output_f=out_file,
+                             in_index=input_index, out_index=output_index)
+
+            print(transform_tool[:transform_tool_len])
+
+            transform_c = apply_transformation(
+                 transform_tool, regex, input_f=file_path, output_f=out_file)
+
+            # print("Transformation Complete")
+
+            if transform_c != -1:
+                transform_count_array[proc_id] += transform_c
+
+            # #  here
+            # # print("Compilation Started")
+            comp_return_code = compile_transformed(repo_loc, include_list,
+                                                   input_f=file_path, output_f=out_file)
+
+            diff_chunk_count = -1
+            if os.path.isfile(out_file):
+                diff_chunk_count = num_diff_regions(
+                    before=in_file, after=out_file)
+
+            # # parallel writing to a csv will be dangerous use locks ? 
+            csv_writer.writerow(
+                [repo_name,
+                 file_n,
+                 diff_chunk_count,
+                 transform_c if transform_c != -1 else "FAILURE",
+                 "SUCCESSFUL" if comp_return_code == 0 else "FAILURE"])
+
+
+def _start_procs(queue_repo_w_files, transform_count_arr, transform_tool, regex, repo_dir, nprocs, pool):
+
+    for proc_id in range(nprocs):
+        p = multiprocessing.Process(target=transform_worker, args=(queue_repo_w_files, transform_count_arr, proc_id, transform_tool, regex, repo_dir))
+        p.start()
+        pool.append(p)
+
+
+def _join_processes(process_pool):
+
+    for p in process_pool:
+        p.join()
+
+
+def transform_files_parallel(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, nprocs=4, copy_req=True):
+    global succ_comps
+    succ_comps = 0
+    total_number = 0
+    transform_count_arr = multiprocessing.Array('L', nprocs)
+
+    process_pool = []
+    queue_repo_w_files = multiprocessing.Queue(nprocs)
+
+    # transform_tool_len = len(transform_tool)
+
+    # get index placements for args
+    # input_index, output_index = get_input_output_loc(transform_tool)
+
+    # csv_results_data = open("out_{}.csv".format(proc_id), "w")
+    # csv_writer = csv.writer(csv_results_data, delimiter='\t')
+    # csv_writer.writerow(
+    #     ["Repo Name", "File Name", "Diff chunks", "Transformed", "Compilation"])
+
+    _start_procs(queue_repo_w_files, transform_count_arr, transform_tool, regex, repo_dir, nprocs, process_pool)
+
+    # get results
+    for repo_name, file_list in itertools.chain(results_dict.iteritems(), ((None,None),)*nprocs ):
+        if repo_name is not None:
+            repo_name = repo_name.encode('utf8')
+
+        queue_repo_w_files.put((repo_name, file_list))
+
+    _join_processes(process_pool)
+
+    total = sum(transform_count_arr)
+
+    if os.path.isfile(output_file):
+        os.remove(output_file)
+    csv_results_data = open(output_file, "a")
+    csv_results_data.write('\t'.join(["Repo Name", "File Name", "Diff chunks", "Transformed", "Compilation\n"]))
+
+    for proc_id in range(nprocs):
+        part_file = "out_{}.csv".format(proc_id)
+        with open(part_file, 'r') as csv_part:
+            csv_results_data.write(csv_part.read())
+        os.remove(part_file)
+    print("\n====== Finished =======")
+    print("Total transform count: {}".format(total))
+
+
 
 def transform_files(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, copy_req=True):
 
@@ -267,16 +418,19 @@ def main():
 
     # pprint(results_dict)
 
-    #  How to know where to place args in command
-
     if clean:
         remove_transform_dir(repo_dir=directory, results_dict=results_dict)
         return
 
-    transform_files(
+    transform_files_parallel(
         transform_tool=tool.split(" "), regex=regex,
         output_file=output_csv, repo_dir=directory,
         results_dict=results_dict)
+
+    # transform_files(
+    #     transform_tool=tool.split(" "), regex=regex,
+    #     output_file=output_csv, repo_dir=directory,
+    #     results_dict=results_dict)
 
     # transform_files(
     #     transform_tool=[
