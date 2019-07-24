@@ -406,6 +406,7 @@
 	 + allow tranformation to change clang to rose etc allow to pass arguments
    - Complete building of object file using a compiler (store in directory in repo)
 
+
 * Generic Transformation approach
 ** Approach
    - Get repo name and files with regex hits (done)
@@ -430,3 +431,19 @@
    - testing output of command is going to be hard also very specific return code could be more general
    - test at scale
    - parallelise ? (at the end)
+	 
+================= Test 1 ===========================
+time ./../src/mgsearch.py -q "for\s*\(\s*[A-Za-z_][\w]*\s+([\w]*)\s*\=\s*[│\d]+;\s*\1\s*<\s*[\w]*\s*\.\s*size\(\)\s*;\s*(\+\+)?\1(\+\+)?\s*\)" -e cpp cxx c++ cc -np 8
+=== Results === 
+all procs finished
+=== Number of hits: 106809 ===
+real    22m50.580s
+user    1m40.143s
+sys     1m22.937s
+
+time ./../src/transformApplication.py -t "clang-tidy -checks=-*,modernize-
+loop-convert --fix-errors input -- -std=c++14" -r modernize-loop-convert -d repos > transformApplication_results.txt 2>&1
+===================
+real    884m18.124s                                                                                                               
+user    673m29.468s                                                                                                              
+sys     169m58.573s

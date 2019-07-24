@@ -162,7 +162,7 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
         # overkill having all directories
         include_list = get_includes(repo_loc=repo_loc)
         # print(include_list)
-        print("here")
+        # print("here")
 
         # remove previous includes for clang { code is lookin pretty bad now :( }
         transform_tool = transform_tool[:transform_tool_len]
@@ -236,21 +236,11 @@ def _join_processes(process_pool):
 def transform_files_parallel(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, nprocs=4, copy_req=True):
     global succ_comps
     succ_comps = 0
-    total_number = 0
+
     transform_count_arr = multiprocessing.Array('L', nprocs)
 
     process_pool = []
     queue_repo_w_files = multiprocessing.Queue(nprocs)
-
-    # transform_tool_len = len(transform_tool)
-
-    # get index placements for args
-    # input_index, output_index = get_input_output_loc(transform_tool)
-
-    # csv_results_data = open("out_{}.csv".format(proc_id), "w")
-    # csv_writer = csv.writer(csv_results_data, delimiter='\t')
-    # csv_writer.writerow(
-    #     ["Repo Name", "File Name", "Diff chunks", "Transformed", "Compilation"])
 
     _start_procs(queue_repo_w_files, transform_count_arr, transform_tool, regex, repo_dir, nprocs, process_pool)
 
@@ -263,7 +253,7 @@ def transform_files_parallel(transform_tool, regex, output_file="transform_resul
 
     _join_processes(process_pool)
 
-    total = sum(transform_count_arr)
+    total_transform_count = sum(transform_count_arr)
 
     if os.path.isfile(output_file):
         os.remove(output_file)
@@ -276,7 +266,7 @@ def transform_files_parallel(transform_tool, regex, output_file="transform_resul
             csv_results_data.write(csv_part.read())
         os.remove(part_file)
     print("\n====== Finished =======")
-    print("Total transform count: {}".format(total))
+    print("Total transform count: {}".format(total_transform_count))
 
 
 
@@ -403,16 +393,11 @@ def parse_args():
 
 
 def main():
-    # get list of files to transform
-        # file path ?
-        # repo and file paths that were hits ?
-    # take tool and args to be executed i.e clang
-    # collect objs and code for files in repo that were transformed in a dir in repo
-    # wait until search completes ?
-    # direct use of gcc to compile :-)
 
+    # get arguments
     directory, tool, regex, input_file, output_csv, clean = parse_args()
 
+    # convert json file of files to transform to python dict 
     with open(input_file, "r") as query_results:
         results_dict = json.load(query_results)
 
@@ -441,3 +426,15 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# 167 files
+
+# === Parallel ===
+# real    0m54.788s
+# user    1m44.800s
+# sys 0m18.848s
+
+# === Serial ===
+# real    1m37.530s
+# user    1m21.856s
+# sys 0m14.512s
