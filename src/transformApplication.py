@@ -34,7 +34,7 @@ def compile_transformed(repo_loc, include_list, input_f, output_f):
     #  c and c++ handled here seperately ?
     global succ_comps
 
-    command_c = ["g++-6", "-std=c++17", "-c", input_f, "-o", output_f + ".o"]
+    command_c = ["g++", "-std=c++17", "-c", input_f, "-o", output_f + ".o"]
     command_c.extend(include_list)
     # print(' '.join(command_c))
     p = Popen(command_c, stdout=nul, stderr=nul)
@@ -382,6 +382,8 @@ def parse_args():
     arg_parser.add_argument(
         '--clean', '-cl', action='store_true', default=False,
         help="Remove all build directories in repos specified by input file that were created by this tool, use before issuing a second search query over repositories")
+    arg_parser.add_argument('--nprocs', '-np', default=4, type=int,
+        help="Number of processes to run in parallel for transformation and compilation of files")
 
     parsed = arg_parser.parse_args()
 
@@ -389,13 +391,13 @@ def parse_args():
         arg_parser.error('Error: Either --clean or --tool must be passed')
         sys.exit(0)
 
-    return parsed.directory, parsed.tool, parsed.regex, parsed.input_file, parsed.output_csv, parsed.clean
+    return parsed.directory, parsed.tool, parsed.regex, parsed.nprocs, parsed.input_file, parsed.output_csv, parsed.clean
 
 
 def main():
 
     # get arguments
-    directory, tool, regex, input_file, output_csv, clean = parse_args()
+    directory, tool, regex, nprocs, input_file, output_csv, clean = parse_args()
 
     # convert json file of files to transform to python dict 
     with open(input_file, "r") as query_results:
@@ -410,7 +412,7 @@ def main():
     transform_files_parallel(
         transform_tool=tool.split(" "), regex=regex,
         output_file=output_csv, repo_dir=directory,
-        results_dict=results_dict)
+        results_dict=results_dict, nprocs=nprocs)
 
     # transform_files(
     #     transform_tool=tool.split(" "), regex=regex,
