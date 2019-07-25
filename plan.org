@@ -432,7 +432,7 @@
    - test at scale
    - parallelise ? (at the end)
 	 
-================= Test 1 ===========================
+================= Test 1: Server ===========================
 time ./../src/mgsearch.py -q "for\s*\(\s*[A-Za-z_][\w]*\s+([\w]*)\s*\=\s*[│\d]+;\s*\1\s*<\s*[\w]*\s*\.\s*size\(\)\s*;\s*(\+\+)?\1(\+\+)?\s*\)" -e cpp cxx c++ cc -np 8
 === Results === 
 all procs finished
@@ -441,9 +441,18 @@ real    22m50.580s
 user    1m40.143s
 sys     1m22.937s
 
+=== Serial ===
 time ./../src/transformApplication.py -t "clang-tidy -checks=-*,modernize-
 loop-convert --fix-errors input -- -std=c++14" -r modernize-loop-convert -d repos > transformApplication_results.txt 2>&1
 ===================
-real    884m18.124s                                                                                                               
+real    884m18.124s hours: 14.7h                                                                                                      
 user    673m29.468s                                                                                                              
 sys     169m58.573s
+
+=== Parallel ===
+time ./../src/transformApplication.py -t "clang-tidy -checks=-*,modernize-loop-convert --fix-errors input -- -std=c++14" -r modernize-
+loop-convert -d repos -np 8 > transformApplication_results.txt 2>&1
+===================
+real    354m37.390s hours: 5.9h                                                                                                
+user    1780m17.243s                                                                                               
+sys     468m28.654s
