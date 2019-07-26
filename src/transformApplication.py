@@ -14,6 +14,64 @@ from pprint import pprint
 import itertools
 
 
+# compile process as an object
+
+class CompileTool:
+    """docstring for CompileTool"""
+
+    def __init__(self, compiler_tool, compile_type):
+
+        if compiler_tool is None:
+            if compile_type.lower() == "c":
+                self.compile_command = [
+                    "gcc-6", "-std=c11", "-c", 'input', "-o", 'output']
+            else:
+                self.compile_command = [
+                    "g++-6", "-std=c++17", "-c", 'input', "-o", 'output']
+            self.input_index = 3
+            self.output_index = 5
+        else:
+            self.compile_command = compiler_tool.split()
+            self.input_index = -1
+            self.output_index = -1
+            self.set_input_output_index()
+
+        self.command_len = len(self.compile_command)
+
+    def set_input_output_index(self):
+        # could replace with regex; find and replace
+        try:
+            self.input_index = self.compile_command.index('input')
+        except ValueError:
+            pass
+        try:
+            self.output_index = self.compile_command.index('output')
+        except ValueError:
+            pass
+
+    def add_in_out_file(self, input_f, output_f):
+        if self.input_index != -1:
+            self.compile_command[self.input_index] = input_f
+        if self.output_index != -1:
+            self.compile_command[self.output_index] = output_f + ".o"
+
+    def compile_transformed(self, include_list, input_f, output_f):
+        nul = open(os.devnull, 'w')
+
+        self.add_in_out_file(input_f, output_f)
+        print("Command: {}".format(self.compile_command))
+        self.compile_command.extend(include_list)
+
+        p = Popen(self.compile_command, stdout=nul, stderr=nul)
+        p.wait()
+
+        print("Compilation return code: {}".format(p.returncode))
+
+        self.compile_command = self.compile_command[:self.command_len]
+        nul.close()
+        return p.returncode
+
+
 def get_includes(repo_loc):
     # ["-Idir/include","",""]
     include_list = []
@@ -25,33 +83,6 @@ def get_includes(repo_loc):
             include_list.append(include_path)
 
     return include_list
-
-
-def compile_transformed(repo_loc, include_list, input_f, output_f, compile_type):
-    nul = open(os.devnull, 'w')
-    # cpp or c ? includes need to be passed
-    # get includes
-    #  c and c++ handled here seperately ?
-    global succ_comps
-
-    if compile_type.lower() == "c":
-        command_c = ["gcc-6", "-std=c11", "-c", input_f, "-o", output_f + ".o"]
-    else:
-        command_c = ["g++-6", "-std=c++17", "-c", input_f, "-o", output_f + ".o"]
-
-    # print(command_c)
-    
-    command_c.extend(include_list)
-    # print(' '.join(command_c))
-    p = Popen(command_c, stdout=None, stderr=None)
-    p.wait()
-
-    print("Compilation return code: {}".format(p.returncode))
-    if p.returncode == 0:
-        succ_comps += 1
-
-    nul.close()
-    return p.returncode
 
 
 def apply_transformation(transform_tool, regex_hit_pattern, input_f, output_f):
@@ -138,12 +169,15 @@ def num_diff_regions(before, after):
     return counter
 
 
-def transform_worker(file_queue, transform_count_array, proc_id, transform_tool, regex, repo_dir, compile_type, copy_req=True):
+def transform_worker(file_queue, transform_count_array, proc_id, transform_tool, regex, repo_dir, compiler_tool, compile_type, copy_req=True):
 
-    # setup 
+    # setup
     transform_tool_len = len(transform_tool)
     # get index placements for args
     input_index, output_index = get_input_output_loc(transform_tool)
+
+    comp_tool = CompileTool(compiler_tool=compiler_tool,
+                            compile_type=compile_type)
 
     csv_results_data = open("out_{}.csv".format(proc_id), "w")
     csv_writer = csv.writer(csv_results_data, delimiter='\t')
@@ -160,7 +194,6 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
         build_path = join(repo_loc, "build-trans")
         print(build_path)
         if os.path.isdir(build_path):
-            # os.rmdir(build_path)
             rmtree(build_path)
             print("Build directory already exists")
         os.mkdir(build_path)
@@ -193,30 +226,33 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
             # clang could be used on set of files at once but not all tools could do this
 
             set_in_out_args(transform_tool, input_f=file_path, output_f=out_file,
-                             in_index=input_index, out_index=output_index)
+                            in_index=input_index, out_index=output_index)
 
             print(transform_tool[:transform_tool_len])
 
             transform_c = apply_transformation(
-                 transform_tool, regex, input_f=file_path, output_f=out_file)
+                transform_tool, regex, input_f=file_path, output_f=out_file)
 
-            # print("Transformation Complete")
+            print("Transformation Complete")
 
             if transform_c != -1:
                 transform_count_array[proc_id] += transform_c
 
             # #  here
             # # print("Compilation Started")
-            comp_return_code = compile_transformed(repo_loc, include_list,
-                                                   input_f=file_path, output_f=out_file,
-                                                   compile_type=compile_type)
+            # comp_return_code = compile_transformed(repo_loc, include_list,
+            #                                        input_f=file_path, output_f=out_file,
+            #                                        compile_type=compile_type)
+
+            comp_return_code = comp_tool.compile_transformed(
+                include_list, in_file, out_file)
 
             diff_chunk_count = -1
             if os.path.isfile(out_file):
                 diff_chunk_count = num_diff_regions(
                     before=in_file, after=out_file)
 
-            # parallel writing to a csv will be dangerous use locks ? 
+            # parallel writing to a csv will be dangerous use locks ?
             # use multiple files and merge
             csv_writer.writerow(
                 [repo_name,
@@ -226,11 +262,13 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
                  "SUCCESSFUL" if comp_return_code == 0 else "FAILURE"])
 
 
-def _start_procs(queue_repo_w_files, transform_count_arr, transform_tool, regex, repo_dir, nprocs, pool, compile_type):
+def _start_procs(queue_repo_w_files, transform_count_arr, transform_tool, regex, repo_dir, nprocs, pool, compiler_tool, compile_type):
 
     for proc_id in range(nprocs):
+        # print("start:{}".format(compiler_tool))
         p = multiprocessing.Process(target=transform_worker,
-            args=(queue_repo_w_files, transform_count_arr, proc_id, transform_tool, regex, repo_dir, compile_type))
+                                    args=(queue_repo_w_files, transform_count_arr, proc_id,
+                                          transform_tool, regex, repo_dir, compiler_tool, compile_type))
         p.start()
         pool.append(p)
 
@@ -241,7 +279,7 @@ def _join_processes(process_pool):
         p.join()
 
 
-def transform_files_parallel(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, nprocs=4, compile_type="cpp", copy_req=True):
+def transform_files_parallel(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, nprocs=4, compiler_tool=None, compile_type="cpp", copy_req=True):
     global succ_comps
     succ_comps = 0
 
@@ -250,10 +288,11 @@ def transform_files_parallel(transform_tool, regex, output_file="transform_resul
     process_pool = []
     queue_repo_w_files = multiprocessing.Queue(nprocs)
 
-    _start_procs(queue_repo_w_files, transform_count_arr, transform_tool, regex, repo_dir, nprocs, process_pool, compile_type)
+    _start_procs(queue_repo_w_files, transform_count_arr, transform_tool,
+                 regex, repo_dir, nprocs, process_pool, compiler_tool, compile_type)
 
     # get results
-    for repo_name, file_list in itertools.chain(results_dict.iteritems(), ((None, None), ) * nprocs ):
+    for repo_name, file_list in itertools.chain(results_dict.iteritems(), ((None, None), ) * nprocs):
         if repo_name is not None:
             repo_name = repo_name.encode('utf8')
 
@@ -266,7 +305,8 @@ def transform_files_parallel(transform_tool, regex, output_file="transform_resul
     if os.path.isfile(output_file):
         os.remove(output_file)
     csv_results_data = open(output_file, "a")
-    csv_results_data.write('\t'.join(["Repo Name", "File Name", "Diff chunks", "Transformed", "Compilation\n"]))
+    csv_results_data.write('\t'.join(
+        ["Repo Name", "File Name", "Diff chunks", "Transformed", "Compilation\n"]))
 
     for proc_id in range(nprocs):
         part_file = "out_{}.csv".format(proc_id)
@@ -276,8 +316,9 @@ def transform_files_parallel(transform_tool, regex, output_file="transform_resul
     print("\n====== Finished =======")
     print("Total transform count: {}".format(total_transform_count))
 
+
 # ========= Serial version ==============
-def transform_files(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, compile_type="cpp", copy_req=True):
+def transform_files(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, compiler_tool=None, compile_type="cpp", copy_req=True):
 
     global succ_comps
     succ_comps = 0
@@ -285,6 +326,8 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
     transform_count = 0
 
     transform_tool_len = len(transform_tool)
+    comp_tool = CompileTool(compiler_tool=compiler_tool,
+                            compile_type=compile_type)
 
     # get index placements for args
     input_index, output_index = get_input_output_loc(transform_tool)
@@ -312,7 +355,7 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
         # overkill having all directories
         include_list = get_includes(repo_loc=repo_loc)
         # print(include_list)
-        print("here")
+
         # remove previous includes for clang { code is lookin pretty bad now :( }
         transform_tool = transform_tool[:transform_tool_len]
         # add includes to clang command
@@ -321,7 +364,7 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
         # parallelise this loop
         # add shared total array
         for file_n in file_list:
-            file_n = file_n.encode('utf8') 
+            file_n = file_n.encode('utf8')
             # transform file
             in_file = join(repo_loc, file_n)
             out_file = join(build_path, basename(file_n))
@@ -352,16 +395,15 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
 
             #  here
             # print("Compilation Started")
-            comp_return_code = compile_transformed(repo_loc, include_list,
-                                                   input_f=file_path, output_f=out_file,
-                                                   compile_type=compile_type)
+            comp_return_code = comp_tool.compile_transformed(include_list,
+                input_f=file_path, output_f=out_file)
 
             diff_chunk_count = -1
             if os.path.isfile(out_file):
                 diff_chunk_count = num_diff_regions(
                     before=in_file, after=out_file)
 
-            # parallel writing to a csv will be dangerous use locks ? 
+            # parallel writing to a csv will be dangerous use locks ?
             csv_writer.writerow(
                 [repo_name,
                  file_n,
@@ -374,6 +416,7 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
     # all files done now compile directory
     # compile_transformed_files(repo_loc, make_file_loc="~/Project/Code-Grep/Makefile")
 # =========================================
+
 
 def parse_args():
     arg_parser = argparse.ArgumentParser()
@@ -391,11 +434,11 @@ def parse_args():
         '--clean', action='store_true', default=False,
         help="Remove all build directories in repos specified by input file that were created by this tool, use before issuing a second search query over repositories")
     arg_parser.add_argument('--nprocs', '-np', default=4, type=int,
-        help="Number of processes to run in parallel for transformation and compilation of files")
+                            help="Number of processes to run in parallel for transformation and compilation of files")
     arg_parser.add_argument('--compile_language', '-cl', default="cpp",
-        help="Lanuage to inform which compiler to run supported lanuage c or cpp; Note: gcc is compiler utilised default g++")
+                            help="Lanuage to inform which compiler to run supported lanuage c or cpp; Note: gcc is compiler utilised default g++")
     arg_parser.add_argument('--compiler_tool', '-ct', type=str,
-        help="A string specifing tool + arguments to run with 'input' to be used in place of input file name and 'output' inplace of output file name")
+                            help="A string specifing tool + arguments to run with 'input' to be used in place of input file name and 'output' inplace of output file name")
 
     parsed = arg_parser.parse_args()
 
@@ -404,39 +447,35 @@ def parse_args():
         sys.exit(0)
 
     return (parsed.directory, parsed.tool, parsed.regex, parsed.nprocs,
-        parsed.input_file, parsed.output_csv, parsed.compile_language, parsed.clean)
+            parsed.input_file, parsed.output_csv, parsed.compiler_tool, parsed.compile_language, parsed.clean)
 
 
 def main():
 
     # get arguments
-    directory, tool, regex, nprocs, input_file, output_csv, comp_lang, clean = parse_args()
+    directory, tool, regex, nprocs, input_file, output_csv, compiler_tool, comp_lang, clean = parse_args()
 
-    # convert json file of files to transform to python dict 
+    # convert json file of files to transform to python dict
     with open(input_file, "r") as query_results:
         results_dict = json.load(query_results)
 
     # pprint(results_dict)
-
+    print(compiler_tool)
     if clean:
         remove_transform_dir(repo_dir=directory, results_dict=results_dict)
         return
 
-    # transform_files_parallel(
-    #     transform_tool=tool.split(" "), regex=regex,
-    #     output_file=output_csv, repo_dir=directory,
-    #     results_dict=results_dict, nprocs=nprocs)
-
     transform_files_parallel(
         transform_tool=tool.split(" "), regex=regex,
         output_file=output_csv, repo_dir=directory,
-        results_dict=results_dict, compile_type=comp_lang)
+        results_dict=results_dict, nprocs=nprocs,
+        compiler_tool=compiler_tool, compile_type=comp_lang)
 
     # transform_files(
-    #     transform_tool=[
-    #         "clang-tidy", "-checks=-*,modernize-loop-convert", "--fix-errors", 'input', "--", "-std=c++14"],
-    #     regex="modernize-loop-convert",
-    #     repo_dir=repo_dir, results_dict=results_dict)
+    #     transform_tool=tool.split(" "), regex=regex,
+    #     output_file=output_csv, repo_dir=directory,
+    #     results_dict=results_dict, 
+    #     compiler_tool=compiler_tool, compile_type=comp_lang)
 
 
 if __name__ == '__main__':
