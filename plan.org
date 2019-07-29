@@ -456,3 +456,23 @@ loop-convert -d repos -np 8 > transformApplication_results.txt 2>&1
 real    354m37.390s hours: 5.9h                                                                                                
 user    1780m17.243s                                                                                               
 sys     468m28.654s
+
+== pre change == 
+Compilation return code: 1
+Number of continues changed chunks: 0
+
+====== Finished =======
+Total transform count: 10
+
+real	5m21.510s
+user	6m30.964s
+sys	1m1.616s
+
+
+== post change ==
+====== Finished =======
+Total transform count: 10
+
+real	5m16.052s
+user	6m27.972s
+sys	1m1.960s

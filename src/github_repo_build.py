@@ -72,7 +72,7 @@ def submit_query(languages, star_list=[100], star_range=None):
         yield fetch_all_query_results(query_str="{} stars:{}".format(lang_flag, star))
 
 
-def build_database(database, languages, star_list=[100], star_range=None, clone_repos="repos"):
+def build_database(database, languages, star_list=[100], star_range=None, clone_repos="repos", nprocs=4):
     # create database if it does not already exist
     repo_db = RepoDatabase(database, create_db=True)
 
@@ -82,13 +82,13 @@ def build_database(database, languages, star_list=[100], star_range=None, clone_
         repo_db.insert_many_repos(result_processed)
 
     if clone_repos is not None:
-        repo_cloner = RepoCloner(directory=clone_repos)
+        repo_cloner = RepoCloner(directory=clone_repos, nprocs=nprocs)
         repo_cloner.clone_repositories(db=repo_db)
 
     repo_db.close_db()
 
 
-def build_file(file_name, languages, star_list=[100], star_range=None, clone_repos="repos"):
+def build_file(file_name, languages, star_list=[100], star_range=None, clone_repos="repos", nprocs=4):
     """ Creates file to store output of a
         Github search query over reposistories """
 
@@ -103,7 +103,7 @@ def build_file(file_name, languages, star_list=[100], star_range=None, clone_rep
             repo_name_file.write(repo_name + '\n')
 
     if clone_repos is not None:
-        repo_cloner = RepoCloner(directory=clone_repos)
+        repo_cloner = RepoCloner(directory=clone_repos, nprocs=nprocs)
         repo_cloner.clone_repositories(fd=file_name)
 
 
@@ -134,19 +134,21 @@ def get_args():
                       action='store', type=str)
     args.add_argument('--clone_repos', '-cl', help='Specify to directory to download the reposistories from the query either stored in a file or database (no effect if neither are specified)',
                       action='store', default=None)
+    parser.add_argument('--nprocs', '-np', default=4,
+                        help='Number of processes to spawn to clone reposistories in parallel',)
     x = args.parse_args()
-    return (x.languages, x.star_list, x.star_range, x.db_name, x.file, x.clone_repos)
+    return (x.languages, x.star_list, x.star_range, x.db_name, x.file, x.clone_repos, x.nprocs)
 
 
 def main():
-    (languages, star_list, star_range, db_name, file_name, clone_repos) = get_args()
+    (languages, star_list, star_range, db_name, file_name, clone_repos, nprocs) = get_args()
 
     print((languages, star_list, star_range, db_name))
 
     if db_name is not None:
-        build_database(db_name, languages, star_list, star_range, clone_repos)
+        build_database(db_name, languages, star_list, star_range, clone_repos, nprocs)
     elif file_name is not None:
-        build_file(file_name, languages, star_list, star_range, clone_repos)
+        build_file(file_name, languages, star_list, star_range, clone_repos, nprocs)
     else:
         print_query_result(languages, star_list, star_range)
 

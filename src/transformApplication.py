@@ -62,6 +62,7 @@ class CompileTool:
         print("Command: {}".format(self.compile_command))
         self.compile_command.extend(include_list)
 
+        # RUN compile command 
         p = Popen(self.compile_command, stdout=nul, stderr=nul)
         p.wait()
 
@@ -154,6 +155,7 @@ def remove_transform_dir(repo_dir="repos", results_dict={}, copy_req=True):
 
 
 def num_diff_regions(before, after):
+    """ Counts number of regions of code that where changed"""
     before_f = open(before, "r")
     after_f = open(after, "r")
     counter = 0
@@ -202,7 +204,7 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
         include_list = get_includes(repo_loc=repo_loc)
         # print(include_list)
 
-        # remove previous includes for clang { code is lookin pretty bad now :( }
+        # remove previous includes for clang, code is lookin pretty bad now :(
         transform_tool = transform_tool[:transform_tool_len]
         # add includes to clang command
         transform_tool.extend(include_list)
@@ -237,12 +239,6 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
 
             if transform_c != -1:
                 transform_count_array[proc_id] += transform_c
-
-            # #  here
-            # # print("Compilation Started")
-            # comp_return_code = compile_transformed(repo_loc, include_list,
-            #                                        input_f=file_path, output_f=out_file,
-            #                                        compile_type=compile_type)
 
             comp_return_code = comp_tool.compile_transformed(
                 include_list, in_file, out_file)
@@ -373,7 +369,6 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
             print("\n=====Process File======")
             print(in_file)
 
-            # clang-tidy -checks='modernize-loop-convert' file.in -- -std=c++11
             if copy_req:
                 copyfile(in_file, out_file)
                 file_path = out_file
@@ -382,7 +377,6 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
 
             # what if tool requires -I arguements to work
             # clang could be used on set of files at once but not all tools could do this
-            # transform_tool = alter_tool_args(transform_tool, file_path, out_file)
             set_in_out_args(transform_tool, input_f=file_path, output_f=out_file,
                             in_index=input_index, out_index=output_index)
 
@@ -393,10 +387,9 @@ def transform_files(transform_tool, regex, output_file="transform_results.csv", 
             if transform_c != -1:
                 transform_count += transform_c
 
-            #  here
             # print("Compilation Started")
             comp_return_code = comp_tool.compile_transformed(include_list,
-                input_f=file_path, output_f=out_file)
+                                                             input_f=file_path, output_f=out_file)
 
             diff_chunk_count = -1
             if os.path.isfile(out_file):
@@ -474,21 +467,9 @@ def main():
     # transform_files(
     #     transform_tool=tool.split(" "), regex=regex,
     #     output_file=output_csv, repo_dir=directory,
-    #     results_dict=results_dict, 
+    #     results_dict=results_dict,
     #     compiler_tool=compiler_tool, compile_type=comp_lang)
 
 
 if __name__ == '__main__':
     main()
-
-# 167 files
-
-# === Parallel ===
-# real    0m54.788s
-# user    1m44.800s
-# sys 0m18.848s
-
-# === Serial ===
-# real    1m37.530s
-# user    1m21.856s
-# sys 0m14.512s
