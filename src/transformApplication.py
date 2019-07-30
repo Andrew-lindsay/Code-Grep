@@ -60,9 +60,13 @@ class CompileTool:
 
         self.add_in_out_file(input_f, output_f)
         print("Command: {}".format(self.compile_command))
-        self.compile_command.extend(include_list)
 
-        # RUN compile command 
+        self.compile_command.extend(
+            map(lambda path: "-I" + path, include_list))
+
+        # print("COMPILE: {}".format(self.compile_command))
+
+        # RUN compile command
         p = Popen(self.compile_command, stdout=nul, stderr=nul)
         p.wait()
 
@@ -80,7 +84,7 @@ def get_includes(repo_loc):
         if '.git' in dirs:  # stop recursing dowm .git directory
             dirs.remove('.git')
         for directory in dirs:
-            include_path = "-I" + join(dir_path, directory)
+            include_path = join(dir_path, directory)
             include_list.append(include_path)
 
     return include_list
@@ -171,7 +175,7 @@ def num_diff_regions(before, after):
     return counter
 
 
-def transform_worker(file_queue, transform_count_array, proc_id, transform_tool, regex, repo_dir, compiler_tool, compile_type, copy_req=True):
+def transform_worker(file_queue, transform_count_array, proc_id, transform_tool, regex, repo_dir, compiler_tool, compile_type, include_prefix, copy_req=True):
 
     # setup
     transform_tool_len = len(transform_tool)
@@ -207,7 +211,8 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
         # remove previous includes for clang, code is lookin pretty bad now :(
         transform_tool = transform_tool[:transform_tool_len]
         # add includes to clang command
-        transform_tool.extend(include_list)
+        transform_tool.extend(
+            map(lambda path: include_prefix + path, include_list))
 
         for file_n in file_list:
             file_n = file_n.encode('utf8')
@@ -216,7 +221,7 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
 
             print("\n=====Process File======")
             print("file:{}, id:{}".format(in_file, proc_id))
-
+            print("include prefix: {}".format(include_prefix))
             # clang-tidy -checks='modernize-loop-convert' file.in -- -std=c++11
             if copy_req:
                 copyfile(in_file, out_file)
@@ -241,7 +246,7 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
                 transform_count_array[proc_id] += transform_c
 
             comp_return_code = comp_tool.compile_transformed(
-                include_list, in_file, out_file)
+                include_list, file_path, out_file)
 
             diff_chunk_count = -1
             if os.path.isfile(out_file):
@@ -258,13 +263,13 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
                  "SUCCESSFUL" if comp_return_code == 0 else "FAILURE"])
 
 
-def _start_procs(queue_repo_w_files, transform_count_arr, transform_tool, regex, repo_dir, nprocs, pool, compiler_tool, compile_type):
+def _start_procs(queue_repo_w_files, transform_count_arr, transform_tool, regex, repo_dir, nprocs, pool, compiler_tool, compile_type, include_prefix):
 
     for proc_id in range(nprocs):
         # print("start:{}".format(compiler_tool))
         p = multiprocessing.Process(target=transform_worker,
                                     args=(queue_repo_w_files, transform_count_arr, proc_id,
-                                          transform_tool, regex, repo_dir, compiler_tool, compile_type))
+                                          transform_tool, regex, repo_dir, compiler_tool, compile_type, include_prefix))
         p.start()
         pool.append(p)
 
@@ -275,7 +280,7 @@ def _join_processes(process_pool):
         p.join()
 
 
-def transform_files_parallel(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, nprocs=4, compiler_tool=None, compile_type="cpp", copy_req=True):
+def transform_files_parallel(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, nprocs=4, compiler_tool=None, compile_type="cpp", include_prefix="-I", copy_req=True):
     global succ_comps
     succ_comps = 0
 
@@ -285,7 +290,7 @@ def transform_files_parallel(transform_tool, regex, output_file="transform_resul
     queue_repo_w_files = multiprocessing.Queue(nprocs)
 
     _start_procs(queue_repo_w_files, transform_count_arr, transform_tool,
-                 regex, repo_dir, nprocs, process_pool, compiler_tool, compile_type)
+                 regex, repo_dir, nprocs, process_pool, compiler_tool, compile_type, include_prefix)
 
     # get results
     for repo_name, file_list in itertools.chain(results_dict.iteritems(), ((None, None), ) * nprocs):
@@ -432,6 +437,8 @@ def parse_args():
                             help="Lanuage to inform which compiler to run supported lanuage c or cpp; Note: gcc is compiler utilised default g++")
     arg_parser.add_argument('--compiler_tool', '-ct', type=str,
                             help="A string specifing tool + arguments to run with 'input' to be used in place of input file name and 'output' inplace of output file name")
+    arg_parser.add_argument('--include_prefix', '-inc', default="I", type=str,
+                            help="Prefix to append to start of pseudo includes gathered from direction structure only used for transformation tool not compiler")
 
     parsed = arg_parser.parse_args()
 
@@ -440,13 +447,14 @@ def parse_args():
         sys.exit(0)
 
     return (parsed.directory, parsed.tool, parsed.regex, parsed.nprocs,
-            parsed.input_file, parsed.output_csv, parsed.compiler_tool, parsed.compile_language, parsed.clean)
+            parsed.input_file, parsed.output_csv, parsed.compiler_tool,
+            parsed.compile_language, parsed.clean, parsed.include_prefix)
 
 
 def main():
 
     # get arguments
-    directory, tool, regex, nprocs, input_file, output_csv, compiler_tool, comp_lang, clean = parse_args()
+    directory, tool, regex, nprocs, input_file, output_csv, compiler_tool, comp_lang, clean, include_prefix = parse_args()
 
     # convert json file of files to transform to python dict
     with open(input_file, "r") as query_results:
@@ -462,7 +470,8 @@ def main():
         transform_tool=tool.split(" "), regex=regex,
         output_file=output_csv, repo_dir=directory,
         results_dict=results_dict, nprocs=nprocs,
-        compiler_tool=compiler_tool, compile_type=comp_lang)
+        compiler_tool=compiler_tool, compile_type=comp_lang,
+        include_prefix='-' + include_prefix)
 
     # transform_files(
     #     transform_tool=tool.split(" "), regex=regex,
