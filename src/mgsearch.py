@@ -15,10 +15,21 @@ from pprint import pprint
 import json
 
 
-class MgQuery(object):
-    """ Modeling a Query over a large set of in a directory structure """
+class MgQuery:
+    """ Modeling a Query over a large set of in a directory structure 
+    
+    Attributes:
+        query (str): regex search query to be 
+        timeout (int):
+        max_matches (int):
+        nprocs (int):
+        file_queue (Queue):
+        results (Array):
+        pool (list):
 
-    def __init__(self, query, max_matches, timeout, output_matches_f="mg_res.txt", nprocs=4):
+    """
+
+    def __init__(self, query, max_matches, timeout, output_matches_f="mg_results.txt", nprocs=4):
         self.query = query
         self.nprocs = nprocs
         self.output_matches_f = output_matches_f
@@ -32,8 +43,12 @@ class MgQuery(object):
     @staticmethod
     def _join_result_dict(list_of_dict):
         """ Merges the results of Multiple result dictionaries
-        returned from processes. None is returned if empty
-        list of dictionaries provided """
+            returned from processes. None is returned if empty
+            list of dictionaries provided.
+
+        Args:
+            list_of_dict: 
+        """
 
         if not len(list_of_dict) > 1:
             return None
@@ -50,8 +65,13 @@ class MgQuery(object):
     @staticmethod
     def process_file_name(file_path, repo_name):
         """ Function removes the start of file path containing
-         root to directory and returns repository name and specific
-         file path """
+            root to directory and returns repository name and specific
+            file path.
+        
+        Args:
+            file_path (str):
+            repo_name (str):
+        """
 
         len_repo = len(repo_name)
 
@@ -69,8 +89,19 @@ class MgQuery(object):
         return repo_name, file_path_f
 
     @staticmethod
-    def _search_worker(query, file_names, results, id, repo_dir, result_queue_dict, time_limit=None, max_matches=None):
-        """ Code run for each process of parallel search """
+    def _search_worker(
+            query, file_names, results, id, repo_dir,
+            result_queue_dict, time_limit=None, max_matches=None):
+        """ Code run for each process of parallel search
+            
+
+        Args:
+            query (str):
+            file_names (str):
+
+        """
+
+
         query_re = re2.compile(query, re2.MULTILINE)
         regex_hits = 0
         out_file = open("res{}.out".format(id), "w")
@@ -153,7 +184,9 @@ class MgQuery(object):
         self.pool = []
         for proc_id in xrange(self.nprocs):
             p = Process(target=self._search_worker, args=(
-                self.query, self.file_queue, self.results, proc_id, repo_dir, self.result_queue_dict, self.timeout, self.max_matches))
+                self.query, self.file_queue, self.results, proc_id,
+                repo_dir, self.result_queue_dict, self.timeout,
+                self.max_matches))
             p.start()
             self.pool.append(p)
 
@@ -183,11 +216,24 @@ class MgQuery(object):
             p.join()
         print("all procs finished")
 
-    def _produce_data(self, pathfile=None, dir_repos=None, dirs_list=None, endings=None, filetypes=None):
+    def _produce_data(
+            self, pathfile=None, dir_repos=None,
+            dirs_list=None, endings=None, filetypes=None):
         """ File paths added to shared queue for processes to access 
             If a file with paths to files is provided it is used over secified directory
             If no file is provided or path to a directory to search, searches for repo 
-            directory in current path """
+            directory in current path. 
+
+        Args:
+            pathfile (str):
+            dir_repos (str):
+            dirs_list (list):
+            endings list (list):
+            filetypes (str):
+
+        Returns:
+
+        """
 
         if pathfile is not None:
             try:
@@ -283,7 +329,21 @@ class MgQuery(object):
 
         final_res_file.close()
 
-    def search_files(self, pathfile=None, dir_repos=None, dirs_list=None, endings=None, filetypes=None):
+    def search_files(
+        self, pathfile=None, dir_repos=None,
+        dirs_list=None, endings=None, filetypes=None):
+        """ Search files
+
+        Args: 
+            pathfile (str):
+            dir_repos (str):
+            dirs_list (list):
+            endings list (list):
+            filetypes (str):
+
+        Returns:
+            Nothing
+        """
 
         self._start_procs(dir_repos)
 
@@ -340,7 +400,7 @@ def parse_users_args():
     parser.add_argument('--endings', '-e',
                         help='Specify the ending to search for as list of strs e.g -e ".c" ".h" ',
                         nargs='+', action='store', type=str)
-    parser.add_argument('--output_file', '-om', default="mg_res.txt",
+    parser.add_argument('--output_file', '-om', default="mg_results.txt",
                         help="Name of file to store matches found in files default file name mg_res.txt")
 
     parser.add_argument('--database', '-db',
@@ -405,20 +465,24 @@ def main():
             repo_dir=dir_repos, stars=stars, size=size, language=language)
 
         mgsearch_query = MgQuery(
-            query=query_arg, nprocs=nprocs, timeout=time_limit, max_matches=max_matches, output_matches_f=output_matches_f)
+            query=query_arg, nprocs=nprocs, timeout=time_limit,
+            max_matches=max_matches, output_matches_f=output_matches_f)
 
         # list of repositories from database search are passed as list of directories
         mgsearch_query.search_files(
-            pathfile=pathfile, dir_repos=dir_repos, dirs_list=results, endings=endings, filetypes=filetypes)
+            pathfile=pathfile, dir_repos=dir_repos, dirs_list=results,
+            endings=endings, filetypes=filetypes)
 
         repo_db.close_db()
 
     else:
         mgsearch_query = MgQuery(
-            query=query_arg, nprocs=nprocs, timeout=time_limit, max_matches=max_matches, output_matches_f=output_matches_f)
+            query=query_arg, nprocs=nprocs, timeout=time_limit, 
+            max_matches=max_matches, output_matches_f=output_matches_f)
 
         mgsearch_query.search_files(
-            pathfile=pathfile, dir_repos=dir_repos, dirs_list=None, endings=endings, filetypes=filetypes)
+            pathfile=pathfile, dir_repos=dir_repos, 
+            dirs_list=None, endings=endings, filetypes=filetypes)
 
 
 if __name__ == '__main__':

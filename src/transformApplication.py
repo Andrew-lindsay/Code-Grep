@@ -157,7 +157,7 @@ def remove_transform_dir(repo_dir="repos", results_dict={}, copy_req=True):
             rmtree(build_path)
             print("Build directory already exists: {}".format(build_path))
 
-
+            
 def num_diff_regions(before, after):
     """ Counts number of regions of code that where changed"""
     before_f = open(before, "r")
@@ -209,7 +209,8 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
         # print(include_list)
 
         # remove previous includes for clang, code is lookin pretty bad now :(
-        transform_tool = transform_tool[:transform_tool_len]
+        del transform_tool[transform_tool_len:]
+
         # add includes to clang command
         transform_tool.extend(
             map(lambda path: include_prefix + path, include_list))
@@ -275,7 +276,6 @@ def _start_procs(queue_repo_w_files, transform_count_arr, transform_tool, regex,
 
 
 def _join_processes(process_pool):
-
     for p in process_pool:
         p.join()
 

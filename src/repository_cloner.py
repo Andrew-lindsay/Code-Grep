@@ -6,14 +6,22 @@ import subprocess
 import argparse
 import itertools
 from repositorydb import RepoDatabase
-# utilise codesearch backend ? to make index
-# ratelimiting so have to wait when they happen
 
 
 class RepoCloner():
-    """docstring for RepoCloner"""
+    """ Class for Cloning GitHub repositories specified by a file
+        or a sqlite3 repository database 
 
-    def __init__(self, directory="repos", nprocs=4, depth=1):
+    Uses a parallel approach to cloning github repositories
+
+    Attributes:
+        directory (str): Directory to clone the gi repositories into
+        nprocs (int): Number of processes to spawn
+        queue (Queue): A shared queue amount processes containing repositories name to clone
+        pool (list): List of subprocesses handling the actual git cloning
+    """
+
+    def __init__(self, directory="repos", nprocs=4):
         self.directory = directory
         self.manager = Manager()
         self.nprocs = nprocs
@@ -36,6 +44,17 @@ class RepoCloner():
 
     @staticmethod
     def github_clone(repo_queue, directory, depth=1):
+        """ Parallel worker code, clones a single repository from shared queue
+            at a time by running a git commandline tool
+            
+        Args:
+            repo_queue (Queue): Queue shared amount github_clone workers
+            directory (str): directory to clone repos in to
+
+        Returns:
+            Nothing
+        """
+
         while True:
             # check if repo already exists in directory ?
             repo_name = repo_queue.get()
@@ -72,6 +91,16 @@ class RepoCloner():
                 self.queue.put(repo.strip('\n'))
 
     def clone_repositories(self, db=None, fd=None):
+        """ Entry Point for using class, starts parallel workers, determines if file
+            or database is to be used as source of repository names that will be cloned
+
+        Args:
+            db (str): Name of repository database created by github_repo_build.py
+            fd (str): Name of file containing repository names
+
+        Returns:
+            Nothing
+        """
 
         self._start_procs()
         if db is not None:
@@ -108,7 +137,7 @@ def main():
         repo_cloner.clone_repositories(db=repo_db)
     else:
         print("ERROR: must pass either a file or a database")
-        
+
 
 if __name__ == '__main__':
     main()

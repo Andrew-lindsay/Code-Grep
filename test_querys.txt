@@ -1,4 +1,4 @@
-* Searching for interesting things in source code with regex queries
+w* Searching for interesting things in source code with regex queries
   - Definition of a list
   - For loops of a certain form
   - Vector having items added to it one after another
@@ -42,7 +42,7 @@
 7) For loops calling size of container
   for\s*\(\s*[A-Za-z_][\w]*\s+([\w]*)\s*\=\s*[\d]+;\s*\1\s*<\s*[\w]*\s*\.\s*size\(\)\s*;\s*(\+\+)?\1(\+\+)?\s*\)
 
-7) pushes on to a vector 
-   $\s*((std)| ) 
+7) pushes on to a vector detect several one being after the other
+   [A-Za-z_][\w]*\s*.\s*[A-Za-z_][\w]*\s*\(\s*\w*\s*\)
 
-8) 
+8) C++ linked list idea

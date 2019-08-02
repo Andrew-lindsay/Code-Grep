@@ -432,7 +432,10 @@
    - test at scale
    - parallelise ? (at the end)
 	 
-================= Test 1: Server ===========================
+================= Test 1: Server =========================== 
+
+Number of repositories: 5033
+
 time ./../src/mgsearch.py -q "for\s*\(\s*[A-Za-z_][\w]*\s+([\w]*)\s*\=\s*[│\d]+;\s*\1\s*<\s*[\w]*\s*\.\s*size\(\)\s*;\s*(\+\+)?\1(\+\+)?\s*\)" -e cpp cxx c++ cc -np 8
 === Results === 
 all procs finished
@@ -457,9 +460,8 @@ real    354m37.390s hours: 5.9h
 user    1780m17.243s                                                                                               
 sys     468m28.654s
 
+
 == pre change == 
-Compilation return code: 1
-Number of continues changed chunks: 0
 
 ====== Finished =======
 Total transform count: 10

@@ -10,7 +10,20 @@ from repository_cloner import RepoCloner
 
 
 def fetch_all_query_results(query_str):
-    """ """
+    """
+    Collects all paged results from query of github repositories
+    maximum number returned by a query is 100 results per page for
+    10 pages. So 1000 results per query max.
+
+    Args:
+        query_str (str): String to be passed to github search_repositories API
+            e.g "language:c language:c++ stars:10" 
+
+    Returns:
+        A list of github repository objects include metadata about repository
+        name, size, main language
+    """
+
     # Auth token github obj
     g = Github("87fbbf6e4d5bbb3cec34970f06c85b097d1cb68f", per_page=100)
     print("Items per Page: {}".format(g.per_page))
@@ -44,12 +57,6 @@ def fetch_all_query_results(query_str):
             print("Number of requests left: {}/30"
                   .format(g.get_rate_limit().search.remaining))
 
-        # for repo_obj in res.get_page(i):
-        #     yield (repo_obj.full_name, repo_obj.stargazers_count, repo_obj.size, repo_obj.language)
-
-        # res_page = map(lambda repo_obj: (repo_obj.full_name, repo_obj.stargazers_count,
-        #                                  repo_obj.size, repo_obj.language), res.get_page(i))
-
         results.extend(res.get_page(i))
         i += 1
 
@@ -60,6 +67,18 @@ def fetch_all_query_results(query_str):
 
 
 def submit_query(languages, star_list=[100], star_range=None):
+    """ Creates the query string using the languages args and varying star value
+        e.g iter 1 "language:c language:c++ stars:10"
+            itet 2 "language:c language:c++ stars:11"
+
+    Args:
+        languages (list): list of strings denoting programming lanuages
+        star_list (list): A list of integer values representing number of github stars
+    
+    Yields:
+        A list of GitHub repository objects for star value passed in star_list
+    """
+
     if star_range is not None:
         star_list = xrange(star_range[0], star_range[0] + star_range[1])
 
@@ -73,7 +92,22 @@ def submit_query(languages, star_list=[100], star_range=None):
 
 
 def build_database(database, languages, star_list=[100], star_range=None, clone_repos="repos", nprocs=4):
-    # create database if it does not already exist
+    """ Creates a sqlite3 database of Github repos metadata returned from search queries 
+        repositories can be optionally clone in to directory from database.
+
+    Args:
+        database (str): Name of database to be created
+        languages (list): list of programming language names used in query 
+        star_list (list): list of github star values used in queries
+        clone_repos (str): Name of directory to clone repositories into 
+            if None repositories not cloned
+        nprocs (int): Number of processes to clone the github repositories with
+            only has effect if clone_repos arg not None 
+
+    Returns:
+        Nothing returned
+    
+    """
     repo_db = RepoDatabase(database, create_db=True)
 
     for result in submit_query(languages, star_list, star_range):
@@ -89,8 +123,21 @@ def build_database(database, languages, star_list=[100], star_range=None, clone_
 
 
 def build_file(file_name, languages, star_list=[100], star_range=None, clone_repos="repos", nprocs=4):
-    """ Creates file to store output of a
-        Github search query over reposistories """
+    """ Stores the repostitory names returned from the GitGub repository search query into a file
+        Repos store in file can be clone into a specified directory.
+
+    Args:
+        file_name (str): Name of file storing repostitory names
+        languages (list): list of programming language names used in query
+        star_list (list): list of github star values used in queries
+        clone_repos (str): Name of directory to clone repositories into
+            if None repositories not cloned
+        nprocs (int): Number of processes to clone the github repositories with
+            only has effect if clone_repos arg not None
+
+    Returns:
+        Nothing
+    """
 
     results = []
     for result in submit_query(languages, star_list, star_range):
@@ -108,7 +155,13 @@ def build_file(file_name, languages, star_list=[100], star_range=None, clone_rep
 
 
 def print_query_result(languages, star_list, star_range):
-    """ """
+    """ Prints Repository names returned from GitHub API query to screen
+
+    Args:
+        languages (list): list of programming language names used in query
+        star_list (list): list of github star values used in queries
+    """
+
     results = []
     for result in submit_query(languages, star_list, star_range):
         results_processed = map(lambda repo_obj: repo_obj.full_name, result)
