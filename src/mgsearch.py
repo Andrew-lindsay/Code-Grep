@@ -4,7 +4,7 @@ import os
 from os.path import join
 import sys
 import time
-from multiprocessing import Process, Pool, Manager, active_children 
+from multiprocessing import Process, Pool, Manager, active_children
 import multiprocessing
 import itertools
 import argparse
@@ -19,13 +19,13 @@ class MgQuery:
     """ Modeling a Query over a large set of in a directory structure 
     
     Attributes:
-        query (str): regex search query to be 
-        timeout (int):
-        max_matches (int):
-        nprocs (int):
-        file_queue (Queue):
-        results (Array):
-        pool (list):
+        query (str): multiline regex search query used on each file  
+        timeout (int): set a maximum time for the search over files to run 
+        max_matches (int): set maximum number of regex matches across files before exiting
+        nprocs (int): Number of processes to be used to search files in parallel
+        file_queue (Queue): shared message passing queue for processes containing file names  
+        results (Array): Shared memory array of long ints to store match counter for each process
+        pool (list): list of references to sub process to handle search
 
     """
 
@@ -47,7 +47,7 @@ class MgQuery:
             list of dictionaries provided.
 
         Args:
-            list_of_dict: 
+            list_of_dict (list): contains results dict from each process 
         """
 
         if not len(list_of_dict) > 1:
@@ -69,7 +69,7 @@ class MgQuery:
             file path.
         
         Args:
-            file_path (str):
+            file_path (str): 
             repo_name (str):
         """
 
@@ -98,7 +98,12 @@ class MgQuery:
         Args:
             query (str):
             file_names (str):
-
+            results ():
+            id (int):
+            repo_dir ():
+            results_queue_dict ():
+            time_limit (int):
+            max_matches (int):
         """
 
 
@@ -197,7 +202,7 @@ class MgQuery:
     def _join_procs(self):
         # wait for child processes
 
-        # ====== Form json output ===========================
+        # ============ Form json output =====================
         proc_dict_res = []
         # collect results dictionary
         for _ in xrange(self.nprocs):
@@ -299,14 +304,14 @@ class MgQuery:
         print("allowed_file_types: {}".format(allowed_file_types))
 
         dirs_list_cmp = dirs_list if dirs_list is not None else [dir_repos]
-
+    
         for dir_path in dirs_list_cmp:
             if os.path.isfile(dir_path):
                 sys.stderr.write(
                     "ERROR: directory {} does not exist\n".format(dir_path))
                 return
 
-            for (dirpath, dirs, filesnames) in os.walk(dir_repos):
+            for (dirpath, dirs, filesnames) in os.walk(dir_path):
                 # could get count for repositories from here
                 for file_ in filesnames:
                     if file_.endswith(allowed_file_types):
@@ -464,9 +469,13 @@ def main():
         results = repo_db.search_db(
             repo_dir=dir_repos, stars=stars, size=size, language=language)
 
+        # pprint(list(results))
+
         mgsearch_query = MgQuery(
             query=query_arg, nprocs=nprocs, timeout=time_limit,
             max_matches=max_matches, output_matches_f=output_matches_f)
+
+
 
         # list of repositories from database search are passed as list of directories
         mgsearch_query.search_files(

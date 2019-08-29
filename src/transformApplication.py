@@ -175,7 +175,10 @@ def num_diff_regions(before, after):
     return counter
 
 
-def transform_worker(file_queue, transform_count_array, proc_id, transform_tool, regex, repo_dir, compiler_tool, compile_type, include_prefix, copy_req=True):
+def transform_worker(
+        file_queue, transform_count_array, proc_id,
+        transform_tool, regex, repo_dir, compiler_tool,
+        compile_type, include_prefix, copy_req=True):
 
     # setup
     transform_tool_len = len(transform_tool)
@@ -264,7 +267,10 @@ def transform_worker(file_queue, transform_count_array, proc_id, transform_tool,
                  "SUCCESSFUL" if comp_return_code == 0 else "FAILURE"])
 
 
-def _start_procs(queue_repo_w_files, transform_count_arr, transform_tool, regex, repo_dir, nprocs, pool, compiler_tool, compile_type, include_prefix):
+def _start_procs(
+        queue_repo_w_files, transform_count_arr, transform_tool,
+        regex, repo_dir, nprocs, pool, compiler_tool, compile_type,
+        include_prefix):
 
     for proc_id in range(nprocs):
         # print("start:{}".format(compiler_tool))
@@ -280,7 +286,11 @@ def _join_processes(process_pool):
         p.join()
 
 
-def transform_files_parallel(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, nprocs=4, compiler_tool=None, compile_type="cpp", include_prefix="-I", copy_req=True):
+def transform_files_parallel(
+        transform_tool, regex, output_file="transform_results.csv",
+        repo_dir="repos", results_dict={}, nprocs=4, compiler_tool=None,
+        compile_type="cpp", include_prefix="-I", copy_req=True):
+
     global succ_comps
     succ_comps = 0
 
@@ -319,7 +329,10 @@ def transform_files_parallel(transform_tool, regex, output_file="transform_resul
 
 
 # ========= Serial version ==============
-def transform_files(transform_tool, regex, output_file="transform_results.csv", repo_dir="repos", results_dict={}, compiler_tool=None, compile_type="cpp", copy_req=True):
+def transform_files(
+        transform_tool, regex, output_file="transform_results.csv",
+        repo_dir="repos", results_dict={}, compiler_tool=None,
+        compile_type="cpp", copy_req=True):
 
     global succ_comps
     succ_comps = 0

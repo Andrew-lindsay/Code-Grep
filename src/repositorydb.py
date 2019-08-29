@@ -74,11 +74,11 @@ class RepoDatabase():
         #     yield x[0]
 
     def search_db(self, repo_dir="", stars=None, size=None, language=None):
-        """ Query database for repository names that meet parameter criteria 
-            return name with location of repo directory appended  
+        """ Query database for repository names that meet parameter criteria
+            return name with location of repo directory appended
 
         Args:
-            repo_dir (str): path of directory storing repositories 
+            repo_dir (str): path of directory storing repositories
             stars (str): string of form >10 or <10
             size: (str): string of form >10 or <10 or =10
             lanuages (list of str): list of programming languages name to filter by
@@ -114,7 +114,7 @@ class RepoDatabase():
                 break
             for item in res:
                 # convert from python unicode to utf-8 encoding 
-                # required as issues with os.walk provided unicode names 
+                # required as issues with os.walk provided unicode names
                 yield join(repo_dir, item[0]).encode('utf8')
 
 

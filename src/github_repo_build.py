@@ -17,7 +17,7 @@ def fetch_all_query_results(query_str):
 
     Args:
         query_str (str): String to be passed to github search_repositories API
-            e.g "language:c language:c++ stars:10" 
+            e.g "language:c language:c++ stars:10"
 
     Returns:
         A list of github repository objects include metadata about repository
@@ -187,7 +187,7 @@ def get_args():
                       action='store', type=str)
     args.add_argument('--clone_repos', '-cl', help='Specify to directory to download the reposistories from the query either stored in a file or database (no effect if neither are specified)',
                       action='store', default=None)
-    parser.add_argument('--nprocs', '-np', default=4,
+    args.add_argument('--nprocs', '-np', default=4,
                         help='Number of processes to spawn to clone reposistories in parallel',)
     x = args.parse_args()
     return (x.languages, x.star_list, x.star_range, x.db_name, x.file, x.clone_repos, x.nprocs)
