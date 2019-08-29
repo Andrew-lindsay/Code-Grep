@@ -2,9 +2,9 @@
 
 Code-Grep is a set of comand-line programmes that together build a pipeline. This pipeline can be used to search for patterns in source code files hosted on GithHub and apply code transformation tools to those files identified.
 
-## Pipeline
+<!-- ## Pipeline -->
 
-### github_build_repos
+## github_build_repos
 Takes set of programming language names and set of stars values and searches repositories on GitHub that match those cirterion. 
 
 The list of names returned by the search are output to the terminal by default, can be saved to a file with \-\-file FILENAME flag. The search output can be saved to a database (sqlite3 file) with \-\-db_name NAME flag. The database will included name of repo, number of stars, size of repo and associated language. 
@@ -50,7 +50,7 @@ FINISHED
 ...
 ```
 
-### mgsearch
+## mgsearch
 
 Searches for a supplied regex pattern across all files in repositories stored in a directory specified by *\-\-directory* flag. If directory not specified searches *repos* folder in current directory.
 
@@ -116,9 +116,9 @@ Mgseach also produces another file on completion called results.json which conta
 
 ```
 {
-   "copercini/esp32-iot-examples": [
-        "WiFi_portal/WiFi_portal.ino", 
-        "ESP32_aws_iot/ESP32_aws_iot.ino"
+   "katzarsky/WebSocket": [
+        "WebSocket/WebSocket.cpp", 
+        "WebSocket/md5/md5.c", 
     ], 
     "adamyaxley/Obfuscate": [
         "obfuscate.h"
@@ -131,21 +131,70 @@ Mgseach also produces another file on completion called results.json which conta
 - The allowed regular expression syntax is specified by [re2 syntax](https://github.com/google/re2/wiki/Syntax)
 
 
-### transformApplication
+## transformApplication
 
-example:
+TO BE FINISHED
 
-% describtion of example
+check help command for the tool.
 
 
 ## Installation instructions
 
+This was written in python 2.7 on linux, the re2 dependency along with needing to install sqlite3 might make it harder to use on windows. 
+
 - Dependencies
 	- external dependcies
 		- [re2 ](https://github.com/google/re2) - regular expression library by google.
-		- sqlite3
+		- sqlite3 (ships with most linux distros)
 		- git 
-	- python dependcies
-		- GitHub api (python wrapper)
-		- re2 (python wrapper)
- 
+	- python dependencies
+		- [GitHub api (python wrapper)](https://pypi.org/project/PyGithub/)
+		- [re2 (python wrapper)](https://pypi.org/project/re2/) 
+
+### install re2 library
+
+Follow the install instructions on the [re2 ](https://github.com/google/re2) github page, an outline is also given below.
+
+```
+git clone https://github.com/google/re2.git
+cd re2 
+make 
+make test
+make install
+make test install
+```
+
+alternative using apt on debian distro
+
+`sudo apt-get install re2-3`
+
+
+### python dependencies 
+
+ensure pip version is for python 2.7 or use pip2 instead of pip in the commands.
+
+install the python wrapper for GitHub API
+
+`pip install PyGithub`
+
+install the re2 python wrapper  
+
+`pip install re2`
+
+### Clone Repository
+
+Download the repository somewhere convenient    
+
+```git clone https://github.com/Andrew-lindsay/Code-Grep.git```
+
+### Environment setup 
+
+To not have to use the full path to run the scripts and to avoid more permanent install solution adding the Code-Grep source directory to path may be beneficial.
+
+`PATH=$PATH:PATH_TO_CODE_GREP/PATH_TO_CODE_GREP/Code-Grep/src/`
+
+when Code-Grep cloned in the $HOME directory this would work
+
+`PATH=$PATH:/home/andrew/Code-Grep/src/`
+
+to save running each time the above command can be added to users *.bashrc*, careful to use the full path to Code-Grep when doing so.
