@@ -27,7 +27,7 @@ def fetch_all_query_results(query_str):
     # Auth token github obj
 
     # ========= REPLACE WITH GITHUB TOKEN ==============================
-    g = Github("87fbbf6e4d5bbb3cec34970f06c85b097d1cb68f", per_page=100)
+    g = Github("REPALCE WITH TOKEN", per_page=100)
     # ==================================================================
 
     print("Items per Page: {}".format(g.per_page))

@@ -192,7 +192,7 @@ The *\-\-output_csv* flag can set the name for tsv produced as output, default i
 ### Example
 
 ```bash
-	./transformApplication.py -t "clang-tidy -checks=-*,modernize-loop-convert --fix-errors input -- -std=c++14" -r modernize-loop-convert -d repos -ct "g++ -std=c++14 -c input -o output"
+./transformApplication.py -t "clang-tidy -checks=-*,modernize-loop-convert --fix-errors input -- -std=c++14" -r modernize-loop-convert -d repos -ct "g++ -std=c++14 -c input -o output"
 ```
 
 check help flag of the tool, *\-\-help*, more info.
@@ -265,12 +265,18 @@ Once a token is created it needed to be placed in the *github_repo_build.py* fil
 g = Github("REPALCE WITH TOKEN", per_page=100)
 # ==================================================================
 ```
+If you don't want to use an access token just remove the option for the code like so,
+
+```python
+g = Github(per_page=100)
+```
+this will limit requests from 30 to 10 which could lead to slow down when searching for many repositories using *github_repo_build.py* as requests counter only resets after 60 seconds. 
 
 ### Environment setup 
 
 To not have to use the full path to run the scripts and to avoid more permanent install solution adding the Code-Grep source directory to path may be beneficial.
 
-`PATH=$PATH:PATH_TO_CODE_GREP/PATH_TO_CODE_GREP/Code-Grep/src/`
+`PATH=$PATH:PATH_TO_CODE_GREP/Code-Grep/src/`
 
 when Code-Grep cloned in the $HOME directory this would work
 
