@@ -25,7 +25,11 @@ def fetch_all_query_results(query_str):
     """
 
     # Auth token github obj
+
+    # ========= REPLACE WITH GITHUB TOKEN ==============================
     g = Github("87fbbf6e4d5bbb3cec34970f06c85b097d1cb68f", per_page=100)
+    # ==================================================================
+
     print("Items per Page: {}".format(g.per_page))
 
     if g.get_rate_limit().search.remaining == 0:
@@ -179,8 +183,8 @@ def get_args():
                       action='store', nargs='+', type=str, required=True)
     args.add_argument('--star_list', '-sl', help='List of star values to used to query github database (each star values results in 1000 returned results)',
                       action='store', type=int, nargs='+', default=[100])
-    args.add_argument('--star_range', '-sr', help='Create a list of star values from a range',
-                      action='store', type=int)
+    # args.add_argument('--star_range', '-sr', help='Create a list of star values from a range',
+    #                   action='store', type=int)
     args.add_argument('--db_name', '-db', help='The Name of the database to store all the metadata relating to the reposistories returned from a query',
                       action='store', type=str)
     args.add_argument('--file', '-f', help='A of the file to output the list of reposistory names to if database name not present',
@@ -190,7 +194,7 @@ def get_args():
     args.add_argument('--nprocs', '-np', default=4,
                         help='Number of processes to spawn to clone reposistories in parallel',)
     x = args.parse_args()
-    return (x.languages, x.star_list, x.star_range, x.db_name, x.file, x.clone_repos, x.nprocs)
+    return (x.languages, x.star_list, None, x.db_name, x.file, x.clone_repos, x.nprocs)
 
 
 def main():

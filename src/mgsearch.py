@@ -63,21 +63,26 @@ class MgQuery:
         return merge_dict
 
     @staticmethod
-    def process_file_name(file_path, repo_name):
+    def process_file_name(file_path, repo_dir_name):
         """ Function removes the start of file path containing
             root to directory and returns repository name and specific
             file path.
         
         Args:
-            file_path (str): 
-            repo_name (str):
+            file_path (str): complete path to the file that has been searched
+            repo_dir_name (str): path to the directory holding repositories
+
+
+        Returns:
+            repo_name, file_path_f (tuple str): repository name and path to file
         """
 
-        len_repo = len(repo_name)
+        len_repo = len(repo_dir_name)
 
-        if not len(file_path) > len(repo_name):
+        if not len(file_path) > len(repo_dir_name):
             return ""
 
+        # remove location of repo directory from the path
         if file_path[len_repo] == '/':
             repo_file_path = file_path[len_repo + 1:]
         else:
@@ -96,14 +101,14 @@ class MgQuery:
             
 
         Args:
-            query (str):
-            file_names (str):
-            results ():
-            id (int):
-            repo_dir ():
-            results_queue_dict ():
-            time_limit (int):
-            max_matches (int):
+            query (str): regex search query used on each file
+            file_names (str): a shared queue of file names to search
+            results (): a shared memory array were totatl number of hits are collected
+            id (int): unique id for creating output files, and accessing shared results array
+            repo_dir (): location of directory holding repositories
+            results_queue_dict (): a queue used to return results dictionaries to main process on completion
+            time_limit (int): time limit in seconds before process stops searching
+            max_matches (int): number of matches to make before cancelling search
         """
 
 
@@ -202,7 +207,7 @@ class MgQuery:
     def _join_procs(self):
         # wait for child processes
 
-        # ============ Form json output =====================
+        # ============ Forms json output =====================
         proc_dict_res = []
         # collect results dictionary
         for _ in xrange(self.nprocs):
@@ -224,20 +229,20 @@ class MgQuery:
     def _produce_data(
             self, pathfile=None, dir_repos=None,
             dirs_list=None, endings=None, filetypes=None):
-        """ File paths added to shared queue for processes to access 
+        """ Adds file paths to shared queue for processes to access 
             If a file with paths to files is provided it is used over secified directory
             If no file is provided or path to a directory to search, searches for repo 
-            directory in current path. 
+            directory in current path.
 
         Args:
-            pathfile (str):
-            dir_repos (str):
-            dirs_list (list):
-            endings list (list):
-            filetypes (str):
+            pathfile (str): 
+            dir_repos (str): passed to  _search_dirs
+            dirs_list (list): passed _search_dirs
+            endings list (list): passed to _search_dirs
+            filetypes (str): passed to _search_dirs
 
         Returns:
-
+            Nothing
         """
 
         if pathfile is not None:
@@ -288,7 +293,14 @@ class MgQuery:
                 self.file_queue.put(file_name)
 
     def _search_dirs(self, dir_repos, dirs_list, endings=None, filetypes=None):
-        """ Recursive search of directories to get file names """
+        """ Recursive search of directories to get file names 
+            
+            Args: 
+                dir_repos (str): path to directory holding repositories
+                dir_list (): generator of paths to repositories, return when filtering repositories with the database args
+                endings (list of str): endings useds to search certain files, e.g [".cpp", ".cxx", ".CC" ]
+                filetypes (str): string either cpp or c, act as shortcut for endings for most used languages
+        """
         allowed_file_types = ("")
 
         if endings is not None:
@@ -304,7 +316,7 @@ class MgQuery:
         print("allowed_file_types: {}".format(allowed_file_types))
 
         dirs_list_cmp = dirs_list if dirs_list is not None else [dir_repos]
-    
+
         for dir_path in dirs_list_cmp:
             if os.path.isfile(dir_path):
                 sys.stderr.write(
@@ -337,17 +349,8 @@ class MgQuery:
     def search_files(
         self, pathfile=None, dir_repos=None,
         dirs_list=None, endings=None, filetypes=None):
-        """ Search files
-
-        Args: 
-            pathfile (str):
-            dir_repos (str):
-            dirs_list (list):
-            endings list (list):
-            filetypes (str):
-
-        Returns:
-            Nothing
+        """ Setups up parallel search by starting processes and producing data, 
+            also terminates process when finshed and creates output.
         """
 
         self._start_procs(dir_repos)

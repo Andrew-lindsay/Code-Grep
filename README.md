@@ -2,6 +2,13 @@
 
 Code-Grep is a set of comand-line programmes that together build a pipeline. This pipeline can be used to search for patterns in source code files hosted on GithHub and apply code transformation tools to those files identified.
 
+#### Table of contents
++ Programmes
+	+ [github_build_repos](#github_build_repos)
+	+ [mgsearch](#mgsearch)
+	+ [transformApplication](#transformapplication)
++ [Install instructions](#installation-instructions)
+
 <!-- ## Pipeline -->
 
 ## github_build_repos
@@ -55,7 +62,7 @@ FINISHED
 Searches for a supplied regex pattern across all files in repositories stored in a directory specified by *\-\-directory* flag. If directory not specified searches *repos* folder in current directory.
 
 ```bash
-./mgsearch.py --query "\[A-Za-z_]\w*\s*\[A-Za-z_]\w;" --directory repos --nprocs 8  
+./mgsearch.py --query "[A-Za-z_]\w*\s*[A-Za-z_]\w*\s*;" --directory repos --nprocs 8  
 ```
 The above command search all files in the directory repos for query using 8 parallel processes to speed up the search, if *\-\-nprocs* is not specified 4 processes are used by default. 
 
@@ -66,11 +73,23 @@ The above command search all files in the directory repos for query using 8 para
 
 The search over the files can be limited by total number of matches using \-\-max_matches INT flag.
 
-`./mgsearch.py --query "int\s*\[A-Za-z_]\w;" --max_matches 100` or `./mgsearch.py -q "int\s*\[A-Za-z_]\w;" -mm 100` 
+```bash
+./mgsearch.py --query "int\s*[A-Za-z_]\w*\s*;" --max_matches 100
+``` 
+or 
+```bash
+./mgsearch.py -q "int\s*[A-Za-z_]\w*\s*;" -mm 100
+```
 
 So search is stopped after first 100 matches across all files are found.
 
-`./mgsearch.py --query "int\s*\[A-Za-z_]\w;" --timeout 60` or `./mgsearch.py -q "int\s*\[A-Za-z_]\w;" -t 60` 
+```bash
+./mgsearch.py --query "int\s*[A-Za-z_]\w*\s*;" --timeout 60
+``` 
+or 
+```bash
+./mgsearch.py -q "int\s*[A-Za-z_]\w*\s*;" -t 60
+```
 
 Similarily after 60 seconds the search stops.
 
@@ -79,13 +98,21 @@ Only one flag can be specified at a time, if both are present then number of max
 ##### Filter files to be checked 
 You probably don't want to search all files in a repository probably only those that are source files for a specific language this can be achive with either *\-\-endings* or *\-\-filetypes* flags.
 
-`./mgsearch.py --query "int\s*\[A-Za-z_]\w;" --endings cpp cxx c++`
+```bash
+./mgsearch.py --query "int\s*[A-Za-z_]\w*\s*;" --endings cpp cxx c++
+```
 
 Using \-\-endings as above means only files ending in .cpp .cxx and .c++ will be searched.
 
 For c and c++ there are predefined filetypes for all files relating to that language.
 
-`./mgsearch.py --query "int\s*\[A-Za-z_]\w;" --filetypes cpp` or `./mgsearch.py -q "int\s*\[A-Za-z_]\w;" -ft cpp`
+```bash
+./mgsearch.py --query "int\s*[A-Za-z_]\w*\s*;" --filetypes cpp
+``` 
+or
+```bash
+./mgsearch.py -q "int\s*[A-Za-z_]\w*\s*;" -ft cpp
+```
 
 So if cpp is used it matches files ending in .cpp, .cc, .C, .cxx, .m, .hpp, .hh, .h, .h++, .H, .hxx, .tpp, .c++
 
@@ -95,7 +122,9 @@ If both flags are specified only *\-\-endings* flag is taken into account.
 
 To filter repositories to be searched a database had to be created when cloning the repositories, the path to the database file is required using the *\-\-database* flag.
 
-`./mgsearch.py --query "int\s*\[A-Za-z_]\w;" --database repo.db --stars ">10" --language C++ --size "<1000"`
+```bash
+./mgsearch.py --query "int\s*[A-Za-z_]\w*\s*;" --database repo.db --stars ">10" --language C++ --size "<1000"
+```
 
 The above command only searches through the repositories that have more than 10 stars have cpp as dominate language and are smaller than 1000KB.
 
@@ -112,7 +141,7 @@ repos/arthurgervais/Bitcoin-Simulator/src/applications/model/bitcoin-node.cc:
 ```
 The final output file with the matches can be named using *\-\-output_file* flag, default name is mg_results.txt
 
-Mgseach also produces another file on completion called results.json which contains the files repositories names only with the files within them that where matched in json format. This format is used for the transformApplication tool.
+Mgseach also produces another file on completion called *results.json* which contains the files repositories names only with the files within them that where matched in json format. This format is used for the transformApplication tool.
 
 ```
 {
@@ -133,10 +162,40 @@ Mgseach also produces another file on completion called results.json which conta
 
 ## transformApplication
 
-TO BE FINISHED
+transformApplication takes the *results.json* output of the mgsearch and applies a given transformation tool to it, the programme then attempts to compile the the transformed source code to gauge if it was successful.
 
-check help command for the tool.
+transformation tool is supplied by the *\-\-tool* flag and takes the same command you would run in a terminal except for the use of keyword *input* which gets replaced by the the file to be transformed. Similarly for the *output* keyword gets replaced by a modified version of the input files name.
 
+```bash
+./transformApplication.py --tool "clang-tidy -checks=-*,modernize-loop-convert --fix-errors input -- -std=c++14" --regex modernize-loop-convert
+```
+
+If no compile tool is provided by using *\-\-compiler_tool* flag then defaults to `g++ -std=c++17 -c'input -o output`, providing a compiler tool to use works same as transformation tool with *input* and *output* being substituted for the file path for input and modifed for the output.
+
+### Output
+
+The output format of the tool is a tsv file as below:
+
+```tsv
+Repo Name			File Name					Diff chunks		Transformed		Compilation
+katzarsky/WebSocket	WebSocket/WebSocket.cpp		3				1				FAILURE
+katzarsky/WebSocket	WebSocket/base64/base64.cpp	0				0				SUCCESSFUL
+```
+Diff chunks tries to assess the source code changes to the file by diffing the original file to the transformed one, this is not always the best approach and over estimate changes a lot as it only counts diff regions in the file.
+
+The Transformed column counts the number of appreances of the regex pattern specified by \-\-regex or *\-r* in the standard output of the transformation tool.
+
+Compilation column is set to FAILURE or SUCCESSFUL based on the return code of the compiler tool when attempting to compile the transformed file.
+
+The *\-\-output_csv* flag can set the name for tsv produced as output, default is *transform_results.csv*.
+
+### Example
+
+```bash
+	./transformApplication.py -t "clang-tidy -checks=-*,modernize-loop-convert --fix-errors input -- -std=c++14" -r modernize-loop-convert -d repos -ct "g++ -std=c++14 -c input -o output"
+```
+
+check help flag of the tool, *\-\-help*, more info.
 
 ## Installation instructions
 
@@ -146,7 +205,8 @@ This was written in python 2.7 on linux, the re2 dependency along with needing t
 	- external dependcies
 		- [re2 ](https://github.com/google/re2) - regular expression library by google.
 		- sqlite3 (ships with most linux distros)
-		- git 
+		- python-dev 
+		- git
 	- python dependencies
 		- [GitHub api (python wrapper)](https://pypi.org/project/PyGithub/)
 		- [re2 (python wrapper)](https://pypi.org/project/re2/) 
@@ -164,10 +224,14 @@ make install
 make test install
 ```
 
-alternative using apt on debian distro
+alternative install using apt on ubuntu 18.04 bionic
 
-`sudo apt-get install re2-3`
+```bash
+sudo apt-get install libre2-4
+sudo apt-get install libre2-dev
+```
 
+re2 must be installed before attempting to install re2 python wrapper.
 
 ### python dependencies 
 
@@ -177,7 +241,9 @@ install the python wrapper for GitHub API
 
 `pip install PyGithub`
 
-install the re2 python wrapper  
+install the re2 python wrapper, requires python-dev, the python developement files, to be installed if not already present
+
+`sudo apt-get install python-dev`
 
 `pip install re2`
 
@@ -186,6 +252,19 @@ install the re2 python wrapper
 Download the repository somewhere convenient    
 
 ```git clone https://github.com/Andrew-lindsay/Code-Grep.git```
+
+
+### Setup GitHub token 
+
+To use the GitHub api with less restrictions a GitHub token is required, follow these instructions to create one https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line.
+
+Once a token is created it needed to be placed in the *github_repo_build.py* file near the top of the file, look for the code below.
+
+```python
+# ========= REPLACE WITH GITHUB TOKEN ==============================
+g = Github("REPALCE WITH TOKEN", per_page=100)
+# ==================================================================
+```
 
 ### Environment setup 
 
@@ -198,3 +277,4 @@ when Code-Grep cloned in the $HOME directory this would work
 `PATH=$PATH:/home/andrew/Code-Grep/src/`
 
 to save running each time the above command can be added to users *.bashrc*, careful to use the full path to Code-Grep when doing so.
+
