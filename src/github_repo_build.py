@@ -5,6 +5,7 @@ from time import sleep
 import math
 import sys
 import argparse
+import os
 from repositorydb import RepoDatabase
 from repository_cloner import RepoCloner
 
@@ -26,9 +27,18 @@ def fetch_all_query_results(query_str):
 
     # Auth token github obj
 
-    # ========= REPLACE WITH GITHUB TOKEN ==============================
-    g = Github("REPALCE WITH TOKEN", per_page=100)
-    # ==================================================================
+    auth_file_path = os.path.normpath(os.path.join(
+        os.path.expanduser("~"), ".code_grep/token.txt"))
+
+    if os.path.isfile(auth_file_path):
+        with open(auth_file_path, "r") as token_file:
+            auth_token = token_file.readline().strip()
+        # add more validation checks
+        g = Github(auth_token, per_page=100)
+        print("SUCCESS: Github auth token in use")
+    else:
+        print("ALERT: No authenication token used number of requests will be limited")
+        g = Github(per_page=100)
 
     print("Items per Page: {}".format(g.per_page))
 
@@ -78,7 +88,7 @@ def submit_query(languages, star_list=[100], star_range=None):
     Args:
         languages (list): list of strings denoting programming lanuages
         star_list (list): A list of integer values representing number of github stars
-    
+
     Yields:
         A list of GitHub repository objects for star value passed in star_list
     """
@@ -110,7 +120,7 @@ def build_database(database, languages, star_list=[100], star_range=None, clone_
 
     Returns:
         Nothing returned
-    
+
     """
     repo_db = RepoDatabase(database, create_db=True)
 
@@ -192,20 +202,23 @@ def get_args():
     args.add_argument('--clone_repos', '-cl', help='Specify to directory to download the reposistories from the query either stored in a file or database (no effect if neither are specified)',
                       action='store', default=None)
     args.add_argument('--nprocs', '-np', default=4,
-                        help='Number of processes to spawn to clone reposistories in parallel',)
+                      help='Number of processes to spawn to clone reposistories in parallel',)
     x = args.parse_args()
     return (x.languages, x.star_list, None, x.db_name, x.file, x.clone_repos, x.nprocs)
 
 
 def main():
-    (languages, star_list, star_range, db_name, file_name, clone_repos, nprocs) = get_args()
+    (languages, star_list, star_range, db_name,
+     file_name, clone_repos, nprocs) = get_args()
 
     print((languages, star_list, star_range, db_name))
 
     if db_name is not None:
-        build_database(db_name, languages, star_list, star_range, clone_repos, nprocs)
+        build_database(db_name, languages, star_list,
+                       star_range, clone_repos, nprocs)
     elif file_name is not None:
-        build_file(file_name, languages, star_list, star_range, clone_repos, nprocs)
+        build_file(file_name, languages, star_list,
+                   star_range, clone_repos, nprocs)
     else:
         print_query_result(languages, star_list, star_range)
 

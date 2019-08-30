@@ -258,7 +258,17 @@ Download the repository somewhere convenient
 
 To use the GitHub api with less restrictions a GitHub token is required, follow these instructions to create one https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line.
 
-Once a token is created it needed to be placed in the *github_repo_build.py* file near the top of the file, look for the code below.
+Once a token is created place it in a file called *token.txt* in .code_grep directory in your home directory.
+
+```bash
+mkdir ~/.code_grep
+echo "REPLCE WITH TOKEN" > ~/.code_grep/token.txt
+``` 
+
+without a token requests will be reduced from 30 to 10 which could lead to slow down when searching for many repositories using *github_repo_build.py* as the request counter only resets after 60 seconds. 
+
+
+<!-- Once a token is created it needed to be placed in the *github_repo_build.py* file near the top of the file, look for the code below.
 
 ```python
 # ========= REPLACE WITH GITHUB TOKEN ==============================
@@ -270,7 +280,9 @@ If you don't want to use an access token just remove the option for the code lik
 ```python
 g = Github(per_page=100)
 ```
+
 this will limit requests from 30 to 10 which could lead to slow down when searching for many repositories using *github_repo_build.py* as requests counter only resets after 60 seconds. 
+-->
 
 ### Environment setup 
 
