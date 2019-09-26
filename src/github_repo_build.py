@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python
 
 from github import Github
 from time import sleep
@@ -80,7 +80,7 @@ def fetch_all_query_results(query_str):
     return results
 
 
-def submit_query(languages, star_list=[100], star_range=None):
+def submit_query(languages, query_str, star_list=[100], star_range=None):
     """ Creates the query string using the languages args and varying star value
         e.g iter 1 "language:c language:c++ stars:10"
             itet 2 "language:c language:c++ stars:11"
@@ -93,6 +93,8 @@ def submit_query(languages, star_list=[100], star_range=None):
         A list of GitHub repository objects for star value passed in star_list
     """
 
+    # add same checking of user input query_str
+
     if star_range is not None:
         star_list = xrange(star_range[0], star_range[0] + star_range[1])
 
@@ -102,10 +104,10 @@ def submit_query(languages, star_list=[100], star_range=None):
 
     # print(lang_flag)
     for star in star_list:
-        yield fetch_all_query_results(query_str="{} stars:{}".format(lang_flag, star))
+        yield fetch_all_query_results(query_str="{} {} stars:{}".format(query_str, lang_flag, star))
 
 
-def build_database(database, languages, star_list=[100], star_range=None, clone_repos="repos", nprocs=4):
+def build_database(database, languages, query_str, star_list=[100], star_range=None, clone_repos="repos", nprocs=4):
     """ Creates a sqlite3 database of Github repos metadata returned from search queries 
         repositories can be optionally clone in to directory from database.
 
@@ -124,7 +126,7 @@ def build_database(database, languages, star_list=[100], star_range=None, clone_
     """
     repo_db = RepoDatabase(database, create_db=True)
 
-    for result in submit_query(languages, star_list, star_range):
+    for result in submit_query(languages, query_str, star_list, star_range):
         result_processed = map(lambda repo_obj: (repo_obj.full_name, repo_obj.stargazers_count,
                                                  repo_obj.size, repo_obj.language), result)
         repo_db.insert_many_repos(result_processed)
@@ -136,7 +138,7 @@ def build_database(database, languages, star_list=[100], star_range=None, clone_
     repo_db.close_db()
 
 
-def build_file(file_name, languages, star_list=[100], star_range=None, clone_repos="repos", nprocs=4):
+def build_file(file_name, languages, query_str, star_list=[100], star_range=None, clone_repos="repos", nprocs=4):
     """ Stores the repostitory names returned from the GitGub repository search query into a file
         Repos store in file can be clone into a specified directory.
 
@@ -168,7 +170,7 @@ def build_file(file_name, languages, star_list=[100], star_range=None, clone_rep
         repo_cloner.clone_repositories(fd=file_name)
 
 
-def print_query_result(languages, star_list, star_range):
+def print_query_result(languages, query_str, star_list, star_range):
     """ Prints Repository names returned from GitHub API query to screen
 
     Args:
@@ -177,7 +179,7 @@ def print_query_result(languages, star_list, star_range):
     """
 
     results = []
-    for result in submit_query(languages, star_list, star_range):
+    for result in submit_query(languages, query_str, star_list, star_range):
         results_processed = map(lambda repo_obj: repo_obj.full_name, result)
         results.extend(results_processed)
 
@@ -201,26 +203,27 @@ def get_args():
                       action='store', type=str)
     args.add_argument('--clone_repos', '-cl', help='Specify to directory to download the reposistories from the query either stored in a file or database (no effect if neither are specified)',
                       action='store', default=None)
-    args.add_argument('--nprocs', '-np', default=4,
+    args.add_argument('--nprocs', '-np', default=4, type=int,
                       help='Number of processes to spawn to clone reposistories in parallel',)
+    args.add_argument('--query_str','-q', default="", type=str, help="extra string information to narrow github search")
     x = args.parse_args()
-    return (x.languages, x.star_list, None, x.db_name, x.file, x.clone_repos, x.nprocs)
+    return (x.languages,  x.query_str, x.star_list, None, x.db_name, x.file, x.clone_repos, x.nprocs)
 
 
 def main():
-    (languages, star_list, star_range, db_name,
+    (languages,  query_str, star_list, star_range, db_name,
      file_name, clone_repos, nprocs) = get_args()
 
-    print((languages, star_list, star_range, db_name))
+    print((languages, query_str, star_list, star_range, db_name, nprocs))
 
     if db_name is not None:
-        build_database(db_name, languages, star_list,
+        build_database(db_name, languages, query_str, star_list,
                        star_range, clone_repos, nprocs)
     elif file_name is not None:
-        build_file(file_name, languages, star_list,
+        build_file(file_name, languages, query_str, star_list,
                    star_range, clone_repos, nprocs)
     else:
-        print_query_result(languages, star_list, star_range)
+        print_query_result(languages, query_str, star_list, star_range)
 
 
 if __name__ == '__main__':
