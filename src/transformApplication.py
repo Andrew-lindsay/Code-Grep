@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 from subprocess import Popen, PIPE, STDOUT
 import sys
 from os.path import join, basename

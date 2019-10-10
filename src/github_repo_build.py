@@ -10,7 +10,7 @@ from repositorydb import RepoDatabase
 from repository_cloner import RepoCloner
 
 
-def fetch_all_query_results(query_str):
+def fetch_all_query_results(query_str, search_type="repo"):
     """
     Collects all paged results from query of github repositories
     maximum number returned by a query is 100 results per page for
@@ -46,7 +46,10 @@ def fetch_all_query_results(query_str):
         print("All search requested used up please wait 61s")
         sleep(61)
 
-    res = g.search_repositories(query=query_str)
+    if search_type == "repo":
+        res = g.search_repositories(query=query_str)
+    else:
+        res = g.search_code(query=query_str)
 
     # repo_res_list = open("repo_res_list.txt", "a")
 
@@ -80,7 +83,7 @@ def fetch_all_query_results(query_str):
     return results
 
 
-def submit_query(languages, query_str, star_list=[100], star_range=None):
+def submit_query(languages, query_str, star_list=[100], star_range=None, ):
     """ Creates the query string using the languages args and varying star value
         e.g iter 1 "language:c language:c++ stars:10"
             itet 2 "language:c language:c++ stars:11"
@@ -95,19 +98,18 @@ def submit_query(languages, query_str, star_list=[100], star_range=None):
 
     # add same checking of user input query_str
 
-    if star_range is not None:
-        star_list = xrange(star_range[0], star_range[0] + star_range[1])
-
     lang_flag = ""
     if languages is not None:
         lang_flag = ' '.join(map(lambda x: "language:" + x, languages))
 
-    # print(lang_flag)
-    for star in star_list:
-        yield fetch_all_query_results(query_str="{} {} stars:{}".format(query_str, lang_flag, star))
+    if star_list is not None:
+        for star in star_list:
+            yield fetch_all_query_results(query_str="{} {} stars:{}".format(query_str, lang_flag, star))
+    else:
+        yield fetch_all_query_results(query_str="{} {}".format(query_str, lang_flag))
 
 
-def build_database(database, languages, query_str, star_list=[100], star_range=None, clone_repos="repos", nprocs=4):
+def build_database(database, languages, query_str, star_list=None, star_range=None, clone_repos="repos", nprocs=4, search_type="repo"):
     """ Creates a sqlite3 database of Github repos metadata returned from search queries 
         repositories can be optionally clone in to directory from database.
 
@@ -127,8 +129,13 @@ def build_database(database, languages, query_str, star_list=[100], star_range=N
     repo_db = RepoDatabase(database, create_db=True)
 
     for result in submit_query(languages, query_str, star_list, star_range):
+
+        if search_type != "repo":
+            result = map(lambda code_search_obj: code_search_obj.repostitory)
+
         result_processed = map(lambda repo_obj: (repo_obj.full_name, repo_obj.stargazers_count,
-                                                 repo_obj.size, repo_obj.language), result)
+                                      repo_obj.size, repo_obj.language), result)
+    
         repo_db.insert_many_repos(result_processed)
 
     if clone_repos is not None:
@@ -138,7 +145,7 @@ def build_database(database, languages, query_str, star_list=[100], star_range=N
     repo_db.close_db()
 
 
-def build_file(file_name, languages, query_str, star_list=[100], star_range=None, clone_repos="repos", nprocs=4):
+def build_file(file_name, languages, query_str, star_list=None, star_range=None, clone_repos="repos", nprocs=4, search_type="repo"):
     """ Stores the repostitory names returned from the GitGub repository search query into a file
         Repos store in file can be clone into a specified directory.
 
@@ -157,6 +164,10 @@ def build_file(file_name, languages, query_str, star_list=[100], star_range=None
 
     results = []
     for result in submit_query(languages, star_list, star_range):
+
+        if search_type != "repo":
+            result = map(lambda code_search_obj: code_search_obj.repostitory)
+
         results_processed = map(lambda repo_obj: repo_obj.full_name, result)
         results.extend(results_processed)
 
@@ -170,7 +181,7 @@ def build_file(file_name, languages, query_str, star_list=[100], star_range=None
         repo_cloner.clone_repositories(fd=file_name)
 
 
-def print_query_result(languages, query_str, star_list, star_range):
+def print_query_result(languages, query_str, star_list, star_range, search_type="repo"):
     """ Prints Repository names returned from GitHub API query to screen
 
     Args:
@@ -180,6 +191,10 @@ def print_query_result(languages, query_str, star_list, star_range):
 
     results = []
     for result in submit_query(languages, query_str, star_list, star_range):
+
+        if search_type != "repo":
+            result = map(lambda code_search_obj: code_search_obj.repostitory)
+
         results_processed = map(lambda repo_obj: repo_obj.full_name, result)
         results.extend(results_processed)
 
@@ -192,9 +207,9 @@ def print_query_result(languages, query_str, star_list, star_range):
 def get_args():
     args = argparse.ArgumentParser(prog="Github-Repo-Builder",)
     args.add_argument('--languages', '-l', help='List of lanauges to be issues in search of github reposistories',
-                      action='store', nargs='+', type=str, required=True)
+                      action='store', nargs='+', type=str, required=False)
     args.add_argument('--star_list', '-sl', help='List of star values to used to query github database (each star values results in 1000 returned results)',
-                      action='store', type=int, nargs='+', default=[100])
+                      action='store', type=int, nargs='+', default=None)
     # args.add_argument('--star_range', '-sr', help='Create a list of star values from a range',
     #                   action='store', type=int)
     args.add_argument('--db_name', '-db', help='The Name of the database to store all the metadata relating to the reposistories returned from a query',
@@ -206,24 +221,25 @@ def get_args():
     args.add_argument('--nprocs', '-np', default=4, type=int,
                       help='Number of processes to spawn to clone reposistories in parallel',)
     args.add_argument('--query_str','-q', default="", type=str, help="extra string information to narrow github search")
+    args.add_argument('--code_search', '-cs', default=False, type=bool, help="searchs for keywords in code instead of the reposistories")
     x = args.parse_args()
-    return (x.languages,  x.query_str, x.star_list, None, x.db_name, x.file, x.clone_repos, x.nprocs)
+    return (x.languages,  x.query_str, x.star_list, None, x.db_name, x.file, x.clone_repos, x.nprocs, x.code_search)
 
 
 def main():
     (languages,  query_str, star_list, star_range, db_name,
-     file_name, clone_repos, nprocs) = get_args()
+     file_name, clone_repos, nprocs, code_search) = get_args()
 
     print((languages, query_str, star_list, star_range, db_name, nprocs))
 
     if db_name is not None:
         build_database(db_name, languages, query_str, star_list,
-                       star_range, clone_repos, nprocs)
+                       star_range, clone_repos, nprocs, "code" if code_search else "repo"  )
     elif file_name is not None:
-        build_file(file_name, languages, query_str, star_list,
-                   star_range, clone_repos, nprocs)
+        build_file(file_name, languages, query_str, star_list, 
+                   star_range, clone_repos, nprocs, "code" if code_search else "repo")
     else:
-        print_query_result(languages, query_str, star_list, star_range)
+        print_query_result(languages, query_str, star_list, star_range, "code" if code_search else "repo" )
 
 
 if __name__ == '__main__':
