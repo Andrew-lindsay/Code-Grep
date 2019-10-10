@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from github import Github
+from github.GithubException import RateLimitExceededException
 from time import sleep
 import math
 import sys
@@ -49,6 +50,7 @@ def fetch_all_query_results(query_str, search_type="repo"):
     if search_type == "repo":
         res = g.search_repositories(query=query_str)
     else:
+        print(query_str)
         res = g.search_code(query=query_str)
 
     # repo_res_list = open("repo_res_list.txt", "a")
@@ -63,19 +65,18 @@ def fetch_all_query_results(query_str, search_type="repo"):
     results = []
     i = 0
     while not i == num_of_pages:
-        if g.get_rate_limit().search.remaining == 0:
-            # # DEBUG
-            print("Number of requests left: {}/30"
-                  .format(g.get_rate_limit().search.remaining))
+        try:
+            results.extend(res.get_page(i))
+            i += 1
+        except RateLimitExceededException as rate_limit:
+            requests_left = g.get_rate_limit().search.remaining
+            if requests_left == 0:
+                print("Number of requests left: {}/30"
+                    .format(requests_left))
+            else: 
+                print("Abuse limit reached")
             print("SLEEPING; Time left until reset: {}s".format(61))
             sleep(61)
-
-            # DEBUG
-            print("Number of requests left: {}/30"
-                  .format(g.get_rate_limit().search.remaining))
-
-        results.extend(res.get_page(i))
-        i += 1
 
     print("Number of requests left: {}/{}"
           .format(g.get_rate_limit().search.remaining, g.get_rate_limit().search.limit))
@@ -83,7 +84,7 @@ def fetch_all_query_results(query_str, search_type="repo"):
     return results
 
 
-def submit_query(languages, query_str, star_list=[100], star_range=None, ):
+def submit_query(languages, query_str, star_list=None, star_range=None, search_type="repo"):
     """ Creates the query string using the languages args and varying star value
         e.g iter 1 "language:c language:c++ stars:10"
             itet 2 "language:c language:c++ stars:11"
@@ -104,9 +105,9 @@ def submit_query(languages, query_str, star_list=[100], star_range=None, ):
 
     if star_list is not None:
         for star in star_list:
-            yield fetch_all_query_results(query_str="{} {} stars:{}".format(query_str, lang_flag, star))
+            yield fetch_all_query_results(query_str="{} {} stars:{}".format(query_str, lang_flag, star),search_type=search_type)
     else:
-        yield fetch_all_query_results(query_str="{} {}".format(query_str, lang_flag))
+        yield fetch_all_query_results(query_str="{} {}".format(query_str, lang_flag), search_type=search_type)
 
 
 def build_database(database, languages, query_str, star_list=None, star_range=None, clone_repos="repos", nprocs=4, search_type="repo"):
@@ -128,10 +129,10 @@ def build_database(database, languages, query_str, star_list=None, star_range=No
     """
     repo_db = RepoDatabase(database, create_db=True)
 
-    for result in submit_query(languages, query_str, star_list, star_range):
+    for result in submit_query(languages, query_str, star_list, star_range, search_type):
 
         if search_type != "repo":
-            result = map(lambda code_search_obj: code_search_obj.repostitory)
+            result = map(lambda code_search_obj: code_search_obj.repository, result)
 
         result_processed = map(lambda repo_obj: (repo_obj.full_name, repo_obj.stargazers_count,
                                       repo_obj.size, repo_obj.language), result)
@@ -163,10 +164,10 @@ def build_file(file_name, languages, query_str, star_list=None, star_range=None,
     """
 
     results = []
-    for result in submit_query(languages, star_list, star_range):
+    for result in submit_query(languages, star_list, star_range, search_type):
 
         if search_type != "repo":
-            result = map(lambda code_search_obj: code_search_obj.repostitory)
+            result = map(lambda code_search_obj: code_search_obj.repository, result)
 
         results_processed = map(lambda repo_obj: repo_obj.full_name, result)
         results.extend(results_processed)
@@ -183,17 +184,17 @@ def build_file(file_name, languages, query_str, star_list=None, star_range=None,
 
 def print_query_result(languages, query_str, star_list, star_range, search_type="repo"):
     """ Prints Repository names returned from GitHub API query to screen
-
+    
     Args:
         languages (list): list of programming language names used in query
         star_list (list): list of github star values used in queries
     """
 
     results = []
-    for result in submit_query(languages, query_str, star_list, star_range):
+    for result in submit_query(languages, query_str, star_list, star_range, search_type):
 
         if search_type != "repo":
-            result = map(lambda code_search_obj: code_search_obj.repostitory)
+            result = map(lambda code_search_obj: code_search_obj.repository, result)
 
         results_processed = map(lambda repo_obj: repo_obj.full_name, result)
         results.extend(results_processed)
@@ -219,9 +220,9 @@ def get_args():
     args.add_argument('--clone_repos', '-cl', help='Specify to directory to download the reposistories from the query either stored in a file or database (no effect if neither are specified)',
                       action='store', default=None)
     args.add_argument('--nprocs', '-np', default=4, type=int,
-                      help='Number of processes to spawn to clone reposistories in parallel',)
+                      help='Number of processes to spawn to clone reposistories in parallel')
     args.add_argument('--query_str','-q', default="", type=str, help="extra string information to narrow github search")
-    args.add_argument('--code_search', '-cs', default=False, type=bool, help="searchs for keywords in code instead of the reposistories")
+    args.add_argument('--code_search', '-cs', default=False, action='store_true', help="searchs for keywords in code instead of the reposistories")
     x = args.parse_args()
     return (x.languages,  x.query_str, x.star_list, None, x.db_name, x.file, x.clone_repos, x.nprocs, x.code_search)
 
@@ -230,7 +231,7 @@ def main():
     (languages,  query_str, star_list, star_range, db_name,
      file_name, clone_repos, nprocs, code_search) = get_args()
 
-    print((languages, query_str, star_list, star_range, db_name, nprocs))
+    print((languages, query_str, star_list, star_range, db_name, nprocs, code_search))
 
     if db_name is not None:
         build_database(db_name, languages, query_str, star_list,
